@@ -29,8 +29,14 @@ export async function analyzeWithVirusTotal(indicator: string, type: 'ip' | 'dom
     return data
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-    logger.error('api', `VirusTotal API error for ${indicator}: ${errorMessage}`, error)
-    logger.warn('api', `Falling back to mock data for VirusTotal: ${indicator}`)
+    
+    if (errorMessage.includes('Resource not found')) {
+      logger.warn('api', `VirusTotal: Resource not found for ${type}: ${indicator} - using mock data`)
+    } else {
+      logger.error('api', `VirusTotal API error for ${indicator}: ${errorMessage}`, error)
+      logger.warn('api', `Falling back to mock data for VirusTotal: ${indicator}`)
+    }
+    
     return getMockVirusTotalResponse(indicator, type)
   }
 }

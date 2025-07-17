@@ -63,7 +63,6 @@ export async function POST(request: NextRequest) {
 
     if (!response.ok) {
       const errorText = await response.text()
-      console.error(`VirusTotal API error: ${response.status} - ${errorText}`)
       
       if (response.status === 401) {
         return NextResponse.json(
@@ -75,6 +74,13 @@ export async function POST(request: NextRequest) {
           { status: 500 }
         )
       }
+      
+      if (response.status === 404) {
+        console.warn(`VirusTotal API: Resource not found for ${type}: ${indicator}`)
+        throw new Error(`Resource not found in VirusTotal database`)
+      }
+      
+      console.error(`VirusTotal API error: ${response.status} - ${errorText}`)
       
       if (response.status === 429) {
         return NextResponse.json(
