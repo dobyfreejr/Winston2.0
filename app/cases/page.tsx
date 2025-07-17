@@ -33,11 +33,14 @@ export default function CasesPage() {
     title: '',
     description: '',
     priority: 'medium',
-    timeSpent: 0,
     indicators: '',
     assignee: '',
-    tags: ''
+    tags: '',
+    linkedCases: [] as string[]
   })
+  const [linkCaseId, setLinkCaseId] = useState('')
+  const [isLinkDialogOpen, setIsLinkDialogOpen] = useState(false)
+  const [selectedCaseForLinking, setSelectedCaseForLinking] = useState<any>(null)
 
   useEffect(() => {
     const updateCases = () => {
@@ -96,10 +99,10 @@ export default function CasesPage() {
       description: newCase.description,
       priority: newCase.priority as any,
       status: 'open',
-      timeSpent: newCase.timeSpent,
       indicators,
       assignee: newCase.assignee || undefined,
-      tags
+      tags,
+      linkedCases: []
     })
 
     logger.info('case', `Case created: ${newCase.title}`, { caseId: createdCase.id })
@@ -108,10 +111,10 @@ export default function CasesPage() {
       title: '',
       description: '',
       priority: 'medium',
-      timeSpent: 0,
       indicators: '',
       assignee: '',
-      tags: ''
+      tags: '',
+      linkedCases: []
     })
     setIsCreateDialogOpen(false)
   }
@@ -122,9 +125,27 @@ export default function CasesPage() {
     logger.info('case', `Case status updated: ${caseId} -> ${status}`)
   }
   
-  const updateCaseTimeSpent = (caseId: string, timeSpent: number) => {
-    db.updateCaseTimeSpent(caseId, timeSpent, 'Admin')
-    logger.info('case', `Case time spent updated: ${caseId} -> ${timeSpent} hours`)
+  const linkCases = (caseId1: string, caseId2: string) => {
+    db.linkCases(caseId1, caseId2, 'Admin')
+    logger.info('case', `Cases linked: ${caseId1} <-> ${caseId2}`)
+    // Refresh cases
+    const allCases = db.getCases()
+    setCases(allCases)
+    setFilteredCases(allCases)
+  }
+  
+  const unlinkCases = (caseId1: string, caseId2: string) => {
+    db.unlinkCases(caseId1, caseId2, 'Admin')
+    logger.info('case', `Cases unlinked: ${caseId1} <-> ${caseId2}`)
+    // Refresh cases
+    const allCases = db.getCases()
+    setCases(allCases)
+    setFilteredCases(allCases)
+  }
+  
+  const openLinkDialog = (case_: any) => {
+    setSelectedCaseForLinking(case_)
+    setIsLinkDialogOpen(true)
   }
   
   const addNote = () => {
@@ -247,16 +268,6 @@ export default function CasesPage() {
                 />
               </div>
               
-              <div>
-                <Label htmlFor="tags">Tags (comma-separated)</Label>
-                <Input
-                  id="tags"
-                  value={newCase.tags}
-                  onChange={(e) => setNewCase({...newCase, tags: e.target.value})}
-                  placeholder="malware, phishing, apt"
-                />
-              </div>
-              
               <div className="flex justify-end space-x-2">
                 <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
                   Cancel
@@ -372,10 +383,6 @@ export default function CasesPage() {
                       <p className="text-muted-foreground">{case_.id}</p>
                     </div>
                     <div>
-                      <span className="font-medium">Time Spent:</span>
-                      <p className="text-muted-foreground">{case_.timeSpent} hours</p>
-                    </div>
-                    <div>
                       <span className="font-medium">Created:</span>
                       <p className="text-muted-foreground">{formatDate(case_.createdAt)}</p>
                     </div>
@@ -384,6 +391,14 @@ export default function CasesPage() {
                       <p className="text-muted-foreground">{case_.assignee || 'Unassigned'}</p>
                     </div>
                   </div>
+                  
+                  {/* Case Summary */}
+                  {case_.summary && (
+                    <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                      <span className="font-medium text-sm text-blue-800">Summary:</span>
+                      <p className="text-sm text-blue-700 mt-1">{case_.summary}</p>
+                    </div>
+                  )}
                   
                   {case_.indicators.length > 0 && (
                     <div>
@@ -411,18 +426,46 @@ export default function CasesPage() {
                     </div>
                   )}
                   
-                  {/* Quick Time Spent Update */}
-                  <div className="flex items-center space-x-2">
-                    <Label className="text-sm">Update Time Spent:</Label>
-                    <Input
-                      type="number"
-                      min="0"
-                      step="0.5"
-                      value={case_.timeSpent}
-                      onChange={(e) => updateCaseTimeSpent(case_.id, parseFloat(e.target.value) || 0)}
-                      className="w-20"
-                    />
-                    <span className="text-sm text-muted-foreground">hours</span>
+                  {/* Linked Cases */}
+                  {case_.linkedCases && case_.linkedCases.length > 0 && (
+                    <div>
+                      <span className="font-medium text-sm">Linked Cases:</span>
+                      <div className="flex gap-2 mt-2 flex-wrap">
+                        {case_.linkedCases.map((linkedId: string) => {
+                          const linkedCase = cases.find(c => c.id === linkedId)
+                          return linkedCase ? (
+                            <div key={linkedId} className="flex items-center space-x-1">
+                              <Badge variant="outline" className="text-xs">
+                                {linkedCase.title.length > 20 
+                                  ? `${linkedCase.title.substring(0, 20)}...` 
+                                  : linkedCase.title
+                                }
+                              </Badge>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-4 w-4 p-0 text-red-500 hover:text-red-700"
+                                onClick={() => unlinkCases(case_.id, linkedId)}
+                              >
+                                ×
+                              </Button>
+                            </div>
+                          ) : null
+                        })}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Link Cases Button */}
+                  <div className="flex space-x-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => openLinkDialog(case_)}
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Link Case
+                    </Button>
                   </div>
                 </div>
               </CardContent>
@@ -451,26 +494,23 @@ export default function CasesPage() {
           
           {selectedCase && (
             <div className="space-y-6">
+              {/* Case Summary */}
+              {selectedCase.summary && (
+                <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <h4 className="font-medium mb-2 text-blue-800">Case Summary</h4>
+                  <p className="text-sm text-blue-700">{selectedCase.summary}</p>
+                </div>
+              )}
+              
               {/* Case Information */}
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <h4 className="font-medium mb-2">Time Spent</h4>
-                  <p className="text-sm text-muted-foreground">{selectedCase.timeSpent} hours</p>
-                </div>
                 <div>
                   <h4 className="font-medium mb-2">Assignee</h4>
                   <p className="text-sm text-muted-foreground">{selectedCase.assignee || 'Unassigned'}</p>
                 </div>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <h4 className="font-medium mb-2">Created</h4>
                   <p className="text-sm text-muted-foreground">{formatDate(selectedCase.createdAt)}</p>
-                </div>
-                <div>
-                  <h4 className="font-medium mb-2">Last Updated</h4>
-                  <p className="text-sm text-muted-foreground">{formatDate(selectedCase.updatedAt)}</p>
                 </div>
               </div>
               
@@ -504,6 +544,30 @@ export default function CasesPage() {
                         {tag}
                       </Badge>
                     ))}
+                  </div>
+                </div>
+              )}
+              
+              {/* Linked Cases */}
+              {selectedCase.linkedCases && selectedCase.linkedCases.length > 0 && (
+                <div>
+                  <h4 className="font-medium mb-2">Linked Cases</h4>
+                  <div className="space-y-2">
+                    {selectedCase.linkedCases.map((linkedId: string) => {
+                      const linkedCase = cases.find(c => c.id === linkedId)
+                      return linkedCase ? (
+                        <div key={linkedId} className="flex items-center justify-between p-2 border rounded">
+                          <span className="text-sm">{linkedCase.title}</span>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => unlinkCases(selectedCase.id, linkedId)}
+                          >
+                            Unlink
+                          </Button>
+                        </div>
+                      ) : null
+                    })}
                   </div>
                 </div>
               )}
@@ -554,6 +618,57 @@ export default function CasesPage() {
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+      
+      {/* Link Cases Dialog */}
+      <Dialog open={isLinkDialogOpen} onOpenChange={setIsLinkDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Link Cases</DialogTitle>
+            <DialogDescription>
+              Link "{selectedCaseForLinking?.title}" to another case
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="link-case">Select Case to Link</Label>
+              <Select value={linkCaseId} onValueChange={setLinkCaseId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Choose a case..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {cases
+                    .filter(c => c.id !== selectedCaseForLinking?.id && 
+                                !selectedCaseForLinking?.linkedCases?.includes(c.id))
+                    .map((case_) => (
+                      <SelectItem key={case_.id} value={case_.id}>
+                        {case_.title}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="flex justify-end space-x-2">
+              <Button variant="outline" onClick={() => setIsLinkDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button 
+                onClick={() => {
+                  if (linkCaseId && selectedCaseForLinking) {
+                    linkCases(selectedCaseForLinking.id, linkCaseId)
+                    setIsLinkDialogOpen(false)
+                    setLinkCaseId('')
+                  }
+                }}
+                disabled={!linkCaseId}
+              >
+                Link Cases
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

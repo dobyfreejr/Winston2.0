@@ -111,8 +111,8 @@ export default function IndicatorsPage() {
       description: `Case created from ${indicator.threatLevel} threat level indicator`,
       priority: indicator.threatLevel === 'high' ? 'critical' : indicator.threatLevel === 'medium' ? 'high' : 'medium',
       status: 'open',
-      timeSpent: 0,
       indicators: [indicator.indicator],
+      linkedCases: [],
       tags: [indicator.type, indicator.threatLevel]
     })
     

@@ -73,8 +73,8 @@ export function RecentActivity() {
       description: `Automated case created from ${activity.severity} severity detection`,
       priority: activity.severity === 'high' ? 'critical' : activity.severity === 'medium' ? 'high' : 'medium',
       status: 'open',
-      timeSpent: 0,
       indicators: [activity.indicator],
+      linkedCases: [],
       tags: [activity.indicatorType, activity.severity]
     })
     
