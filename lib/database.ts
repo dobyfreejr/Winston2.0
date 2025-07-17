@@ -14,7 +14,6 @@ interface Case {
   title: string
   description: string
   summary?: string
-  summary?: string
   priority: 'critical' | 'high' | 'medium' | 'low'
   status: 'open' | 'investigating' | 'resolved' | 'closed'
   indicators: string[]
@@ -24,9 +23,6 @@ interface Case {
   tags: string[]
   notes: CaseNote[]
   linkedCases: string[] // Array of case IDs
-  parentCase?: string // Parent case ID for hierarchical linking
-  linkedCases: string[] // Array of case IDs
-  parentCase?: string // Parent case ID for hierarchical linking
 }
 
 interface CaseNote {
@@ -76,8 +72,6 @@ export const db = {
       notes: [],
       linkedCases: caseData.linkedCases || [],
       summary: caseData.summary || generateCaseSummary(caseData),
-      linkedCases: caseData.linkedCases || [],
-      summary: caseData.summary || generateCaseSummary(caseData),
       createdAt: new Date(),
       updatedAt: new Date()
     }
@@ -90,10 +84,6 @@ export const db = {
   updateCase: (id: string, updates: Partial<Case>) => {
     const index = cases.findIndex(c => c.id === id)
     if (index !== -1) {
-      // Auto-update summary if key fields changed
-      if (updates.description || updates.indicators || updates.tags) {
-        updates.summary = generateCaseSummary({ ...cases[index], ...updates })
-      }
       // Auto-update summary if key fields changed
       if (updates.description || updates.indicators || updates.tags) {
         updates.summary = generateCaseSummary({ ...cases[index], ...updates })
@@ -302,67 +292,8 @@ export const db = {
       resolvedCases: cases.filter(c => c.status === 'resolved').length,
       criticalCases: cases.filter(c => c.priority === 'critical' && c.status !== 'closed').length,
       linkedCases: cases.filter(c => c.linkedCases.length > 0).length
-      linkedCases: cases.filter(c => c.linkedCases.length > 0).length
     }
   }
-}
-
-// Auto-generate case summary based on case data
-function generateCaseSummary(caseData: Partial<Case>): string {
-  const parts = []
-  
-  // Priority and status
-  if (caseData.priority) {
-    parts.push(`${caseData.priority.toUpperCase()} priority`)
-  }
-  
-  // Indicator count and types
-  if (caseData.indicators && caseData.indicators.length > 0) {
-    const indicatorTypes = new Set()
-    caseData.indicators.forEach(indicator => {
-      if (indicator.includes('.') && /^\d+\.\d+\.\d+\.\d+$/.test(indicator)) {
-        indicatorTypes.add('IP')
-      } else if (indicator.includes('.') && !indicator.startsWith('http')) {
-        indicatorTypes.add('domain')
-      } else if (indicator.startsWith('http')) {
-        indicatorTypes.add('URL')
-      } else if (/^[a-fA-F0-9]{32,64}$/.test(indicator)) {
-        indicatorTypes.add('hash')
-      } else {
-        indicatorTypes.add('indicator')
-      }
-    })
-    
-    const typesList = Array.from(indicatorTypes).join(', ')
-    parts.push(`${caseData.indicators.length} IOCs (${typesList})`)
-  }
-  
-  // Tags
-  if (caseData.tags && caseData.tags.length > 0) {
-    const relevantTags = caseData.tags.filter(tag => 
-      !['ip', 'domain', 'hash', 'url', 'high', 'medium', 'low', 'critical'].includes(tag.toLowerCase())
-    )
-    if (relevantTags.length > 0) {
-      parts.push(`Tags: ${relevantTags.slice(0, 3).join(', ')}`)
-    }
-  }
-  
-  // Threat level assessment
-  if (caseData.indicators) {
-    const threatKeywords = ['malware', 'phishing', 'apt', 'botnet', 'c2', 'trojan', 'ransomware']
-    const description = (caseData.description || '').toLowerCase()
-    const tags = (caseData.tags || []).map(t => t.toLowerCase())
-    
-    const foundThreats = threatKeywords.filter(keyword => 
-      description.includes(keyword) || tags.includes(keyword)
-    )
-    
-    if (foundThreats.length > 0) {
-      parts.push(`Threat types: ${foundThreats.slice(0, 2).join(', ')}`)
-    }
-  }
-  
-  return parts.length > 0 ? parts.join(' • ') : 'Security investigation case'
 }
 
 // Auto-generate case summary based on case data
