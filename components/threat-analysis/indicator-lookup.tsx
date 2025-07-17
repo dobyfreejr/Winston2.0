@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Search, Loader2, AlertTriangle, Shield, Globe, Hash, Link, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -19,6 +20,7 @@ import { formatDate, formatBytes } from '@/lib/utils'
 import { db } from '@/lib/database'
 
 export function IndicatorLookup() {
+  const router = useRouter()
   const [indicator, setIndicator] = useState('')
   const [loading, setLoading] = useState(false)
   const [results, setResults] = useState<{
@@ -138,7 +140,8 @@ export function IndicatorLookup() {
       tags: [detectIndicatorType(indicator), ...results.threatIntel.threat_types]
     })
     
-    alert(`Case ${newCase.id} created successfully!`)
+    // Redirect to the new case
+    router.push(`/cases?highlight=${newCase.id}`)
   }
 
   const getThreatLevel = (stats: any) => {

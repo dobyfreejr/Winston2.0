@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -9,6 +10,7 @@ import { formatDate } from '@/lib/utils'
 import { db } from '@/lib/database'
 
 export function RecentActivity() {
+  const router = useRouter()
   const [activities, setActivities] = useState<any[]>([])
 
   useEffect(() => {
@@ -82,7 +84,8 @@ export function RecentActivity() {
       db.updateThreatDetection(threat.id, { caseId: newCase.id, status: 'investigating' })
     }
     
-    alert(`Case ${newCase.id} created for ${activity.indicator}`)
+    // Redirect to the new case
+    router.push(`/cases?highlight=${newCase.id}`)
   }
 
   if (activities.length === 0) {

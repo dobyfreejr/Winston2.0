@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -15,6 +16,10 @@ import { db } from '@/lib/database'
 import { logger } from '@/lib/logger'
 
 export default function CasesPage() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const highlightCaseId = searchParams.get('highlight')
+  
   const [cases, setCases] = useState<any[]>([])
   const [filteredCases, setFilteredCases] = useState<any[]>([])
   const [searchTerm, setSearchTerm] = useState('')
@@ -39,13 +44,24 @@ export default function CasesPage() {
       const allCases = db.getCases()
       setCases(allCases)
       setFilteredCases(allCases)
+      
+      // Auto-open case details if highlighted
+      if (highlightCaseId) {
+        const highlightedCase = allCases.find(c => c.id === highlightCaseId)
+        if (highlightedCase) {
+          setSelectedCase(highlightedCase)
+          setIsDetailsDialogOpen(true)
+          // Clear the highlight parameter
+          router.replace('/cases')
+        }
+      }
     }
     
     updateCases()
     const interval = setInterval(updateCases, 5000)
     
     return () => clearInterval(interval)
-  }, [])
+  }, [highlightCaseId, router])
 
   useEffect(() => {
     let filtered = cases

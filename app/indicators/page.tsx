@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -23,6 +24,7 @@ import { formatDate } from '@/lib/utils'
 import { db } from '@/lib/database'
 
 export default function IndicatorsPage() {
+  const router = useRouter()
   const [indicators, setIndicators] = useState<any[]>([])
   const [filteredIndicators, setFilteredIndicators] = useState<any[]>([])
   const [searchTerm, setSearchTerm] = useState('')
@@ -113,7 +115,8 @@ export default function IndicatorsPage() {
       tags: [indicator.type, indicator.threatLevel]
     })
     
-    alert(`Case ${newCase.id} created for ${indicator.indicator}`)
+    // Redirect to the new case
+    router.push(`/cases?highlight=${newCase.id}`)
   }
 
   return (
