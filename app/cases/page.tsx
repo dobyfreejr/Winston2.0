@@ -9,9 +9,10 @@ import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
-import { Plus, Search, Filter, Eye, Edit, Trash2 } from 'lucide-react'
+import { Plus, Search, Filter, Eye, Edit, Trash2, MessageSquare, TrendingUp } from 'lucide-react'
 import { formatDate } from '@/lib/utils'
 import { db } from '@/lib/database'
+import { logger } from '@/lib/logger'
 
 export default function CasesPage() {
   const [cases, setCases] = useState<any[]>([])
@@ -20,10 +21,14 @@ export default function CasesPage() {
   const [statusFilter, setStatusFilter] = useState('all')
   const [priorityFilter, setPriorityFilter] = useState('all')
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
+  const [selectedCase, setSelectedCase] = useState<any>(null)
+  const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false)
+  const [newNote, setNewNote] = useState('')
   const [newCase, setNewCase] = useState({
     title: '',
     description: '',
     priority: 'medium',
+    progress: 0,
     indicators: '',
     assignee: '',
     tags: ''
@@ -70,20 +75,24 @@ export default function CasesPage() {
     const indicators = newCase.indicators.split(',').map(i => i.trim()).filter(i => i)
     const tags = newCase.tags.split(',').map(t => t.trim()).filter(t => t)
 
-    db.createCase({
+    const createdCase = db.createCase({
       title: newCase.title,
       description: newCase.description,
       priority: newCase.priority as any,
       status: 'open',
+      progress: newCase.progress,
       indicators,
       assignee: newCase.assignee || undefined,
       tags
     })
 
+    logger.info('case', `Case created: ${newCase.title}`, { caseId: createdCase.id })
+
     setNewCase({
       title: '',
       description: '',
       priority: 'medium',
+      progress: 0,
       indicators: '',
       assignee: '',
       tags: ''
@@ -93,6 +102,30 @@ export default function CasesPage() {
 
   const updateCaseStatus = (caseId: string, status: string) => {
     db.updateCase(caseId, { status: status as any })
+    db.addCaseNote(caseId, `Status changed to ${status}`, 'System', 'status_change')
+    logger.info('case', `Case status updated: ${caseId} -> ${status}`)
+  }
+  
+  const updateCaseProgress = (caseId: string, progress: number) => {
+    db.updateCaseProgress(caseId, progress, 'Admin')
+    logger.info('case', `Case progress updated: ${caseId} -> ${progress}%`)
+  }
+  
+  const addNote = () => {
+    if (!newNote.trim() || !selectedCase) return
+    
+    db.addCaseNote(selectedCase.id, newNote, 'Admin', 'note')
+    setNewNote('')
+    logger.info('case', `Note added to case: ${selectedCase.id}`)
+    
+    // Refresh case data
+    const updatedCase = db.getCases().find(c => c.id === selectedCase.id)
+    setSelectedCase(updatedCase)
+  }
+  
+  const openCaseDetails = (case_: any) => {
+    setSelectedCase(case_)
+    setIsDetailsDialogOpen(true)
   }
 
   const getPriorityColor = (priority: string) => {
@@ -305,12 +338,44 @@ export default function CasesPage() {
                         <SelectItem value="closed">Closed</SelectItem>
                       </SelectContent>
                     </Select>
+                    
+                    <Button variant="outline" size="sm" onClick={() => openCaseDetails(case_)}>
+                      <Eye className="h-4 w-4 mr-2" />
+                      Details
+                    </Button>
                   </div>
+                </div>
+                
+                <div>
+                  <Label htmlFor="progress">Initial Progress (%)</Label>
+                  <Input
+                    id="progress"
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={newCase.progress}
+                    onChange={(e) => setNewCase({...newCase, progress: parseInt(e.target.value) || 0})}
+                    placeholder="0"
+                  />
                 </div>
               </CardHeader>
               
               <CardContent>
                 <div className="space-y-4">
+                  {/* Progress Bar */}
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium">Progress</span>
+                      <span className="text-sm text-muted-foreground">{case_.progress}%</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div 
+                        className="bg-blue-600 h-2 rounded-full transition-all duration-300" 
+                        style={{ width: `${case_.progress}%` }}
+                      />
+                    </div>
+                  </div>
+                  
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                     <div>
                       <span className="font-medium">Case ID:</span>
@@ -355,12 +420,157 @@ export default function CasesPage() {
                       </div>
                     </div>
                   )}
+                  
+                  {/* Quick Progress Update */}
+                  <div className="flex items-center space-x-2">
+                    <Label className="text-sm">Update Progress:</Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      max="100"
+                      value={case_.progress}
+                      onChange={(e) => updateCaseProgress(case_.id, parseInt(e.target.value) || 0)}
+                      className="w-20"
+                    />
+                    <span className="text-sm text-muted-foreground">%</span>
+                  </div>
                 </div>
               </CardContent>
             </Card>
           ))
         )}
       </div>
+      
+      {/* Case Details Dialog */}
+      <Dialog open={isDetailsDialogOpen} onOpenChange={setIsDetailsDialogOpen}>
+        <DialogContent className="sm:max-w-[800px] max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center space-x-2">
+              <span>Case Details: {selectedCase?.title}</span>
+              <Badge variant={getPriorityColor(selectedCase?.priority) as any}>
+                {selectedCase?.priority}
+              </Badge>
+              <Badge variant={getStatusColor(selectedCase?.status) as any}>
+                {selectedCase?.status}
+              </Badge>
+            </DialogTitle>
+            <DialogDescription>
+              Case ID: {selectedCase?.id} • Created: {selectedCase && formatDate(selectedCase.createdAt)}
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedCase && (
+            <div className="space-y-6">
+              {/* Progress Section */}
+              <div>
+                <h4 className="font-medium mb-2">Investigation Progress</h4>
+                <div className="flex items-center space-x-4">
+                  <div className="flex-1">
+                    <div className="w-full bg-gray-200 rounded-full h-3">
+                      <div 
+                        className="bg-blue-600 h-3 rounded-full transition-all duration-300" 
+                        style={{ width: `${selectedCase.progress}%` }}
+                      />
+                    </div>
+                  </div>
+                  <span className="text-sm font-medium">{selectedCase.progress}%</span>
+                </div>
+              </div>
+              
+              {/* Case Information */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <h4 className="font-medium mb-2">Assignee</h4>
+                  <p className="text-sm text-muted-foreground">{selectedCase.assignee || 'Unassigned'}</p>
+                </div>
+                <div>
+                  <h4 className="font-medium mb-2">Last Updated</h4>
+                  <p className="text-sm text-muted-foreground">{formatDate(selectedCase.updatedAt)}</p>
+                </div>
+              </div>
+              
+              {/* Description */}
+              <div>
+                <h4 className="font-medium mb-2">Description</h4>
+                <p className="text-sm text-muted-foreground">{selectedCase.description}</p>
+              </div>
+              
+              {/* Indicators */}
+              {selectedCase.indicators.length > 0 && (
+                <div>
+                  <h4 className="font-medium mb-2">Indicators of Compromise</h4>
+                  <div className="flex gap-2 flex-wrap">
+                    {selectedCase.indicators.map((indicator: string) => (
+                      <Badge key={indicator} variant="outline" className="font-mono text-xs">
+                        {indicator}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              {/* Tags */}
+              {selectedCase.tags.length > 0 && (
+                <div>
+                  <h4 className="font-medium mb-2">Tags</h4>
+                  <div className="flex gap-2 flex-wrap">
+                    {selectedCase.tags.map((tag: string) => (
+                      <Badge key={tag} variant="secondary" className="text-xs">
+                        {tag}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              {/* Notes Section */}
+              <div>
+                <h4 className="font-medium mb-4">Case Notes</h4>
+                
+                {/* Add Note */}
+                <div className="flex space-x-2 mb-4">
+                  <Textarea
+                    placeholder="Add a note to this case..."
+                    value={newNote}
+                    onChange={(e) => setNewNote(e.target.value)}
+                    rows={2}
+                  />
+                  <Button onClick={addNote} disabled={!newNote.trim()}>
+                    <MessageSquare className="h-4 w-4 mr-2" />
+                    Add Note
+                  </Button>
+                </div>
+                
+                {/* Notes List */}
+                <div className="space-y-3 max-h-60 overflow-y-auto">
+                  {selectedCase.notes && selectedCase.notes.length > 0 ? (
+                    selectedCase.notes.map((note: any) => (
+                      <div key={note.id} className="border rounded-lg p-3">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center space-x-2">
+                            <Badge variant={note.type === 'status_change' ? 'default' : 'secondary'} className="text-xs">
+                              {note.type.replace('_', ' ')}
+                            </Badge>
+                            <span className="text-sm font-medium">{note.author}</span>
+                          </div>
+                          <span className="text-xs text-muted-foreground">
+                            {formatDate(note.timestamp)}
+                          </span>
+                        </div>
+                        <p className="text-sm">{note.content}</p>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-sm text-muted-foreground text-center py-4">
+                      No notes yet. Add the first note to start documenting this investigation.
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

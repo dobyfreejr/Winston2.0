@@ -25,6 +25,7 @@ const navigation = [
   { name: 'Indicators', href: '/indicators', icon: AlertTriangle },
   { name: 'Intelligence Feeds', href: '/feeds', icon: Database },
   { name: 'Network Analysis', href: '/network', icon: Globe },
+  { name: 'Admin Panel', href: '/admin', icon: Settings },
   { name: 'Settings', href: '/settings', icon: Settings },
 ]
 

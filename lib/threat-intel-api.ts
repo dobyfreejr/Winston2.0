@@ -1,4 +1,5 @@
 import { VirusTotalResponse, IPGeolocation, DomainInfo, MalwareSample, ThreatIntelligence } from '@/types/threat-intel'
+import { logger } from './logger'
 
 // VirusTotal API Integration via Next.js API route
 export async function analyzeWithVirusTotal(indicator: string, type: 'ip' | 'domain' | 'hash' | 'url'): Promise<VirusTotalResponse> {
@@ -16,11 +17,12 @@ export async function analyzeWithVirusTotal(indicator: string, type: 'ip' | 'dom
     }
 
     const data = await response.json()
+    logger.info('api', `VirusTotal analysis completed for ${type}: ${indicator}`)
     return data
   } catch (error) {
-    console.error('VirusTotal API error:', error)
+    logger.error('api', `VirusTotal API error for ${indicator}`, error)
     // Return mock data when API is not configured or fails
-    console.log('Falling back to mock data for VirusTotal')
+    logger.warn('api', `Falling back to mock data for VirusTotal: ${indicator}`)
     return getMockVirusTotalResponse(indicator, type)
   }
 }
@@ -41,9 +43,10 @@ export async function getIPGeolocation(ip: string): Promise<IPGeolocation> {
     }
 
     const data = await response.json()
+    logger.info('api', `IP geolocation lookup completed: ${ip}`)
     return data
   } catch (error) {
-    console.error('IPGeolocation API error:', error)
+    logger.error('api', `IPGeolocation API error for ${ip}`, error)
     return getMockIPGeolocation(ip)
   }
 }
@@ -64,9 +67,10 @@ export async function getDomainInfo(domain: string): Promise<DomainInfo> {
     }
 
     const data = await response.json()
+    logger.info('api', `Domain info lookup completed: ${domain}`)
     return data
   } catch (error) {
-    console.error('WhoisXML API error:', error)
+    logger.error('api', `WhoisXML API error for ${domain}`, error)
     return getMockDomainInfo(domain)
   }
 }
@@ -107,9 +111,10 @@ export async function searchMalwareBazaar(hash: string): Promise<MalwareSample[]
       }))
     }
 
+    logger.info('api', `Malware Bazaar search completed: ${hash}`)
     return []
   } catch (error) {
-    console.error('Malware Bazaar API error:', error)
+    logger.error('api', `Malware Bazaar API error for ${hash}`, error)
     return getMockMalwareSamples(hash)
   }
 }
@@ -130,9 +135,10 @@ export async function checkAbuseIPDB(ip: string): Promise<any> {
     }
 
     const data = await response.json()
+    logger.info('api', `AbuseIPDB check completed: ${ip}`)
     return data
   } catch (error) {
-    console.error('AbuseIPDB API error:', error)
+    logger.error('api', `AbuseIPDB API error for ${ip}`, error)
     return null
   }
 }
@@ -176,6 +182,13 @@ export async function enrichThreatIntelligence(indicator: string, type: 'ip' | '
       }
     }
 
+    logger.info('analysis', `Threat intelligence enrichment completed for ${type}: ${indicator}`, {
+      reputation_score,
+      threat_types,
+      confidence,
+      sources
+    })
+
     return {
       indicator,
       type,
@@ -187,7 +200,7 @@ export async function enrichThreatIntelligence(indicator: string, type: 'ip' | '
       sources
     }
   } catch (error) {
-    console.error('Threat intelligence enrichment error:', error)
+    logger.error('analysis', `Threat intelligence enrichment error for ${indicator}`, error)
     return getMockThreatIntelligence(indicator, type)
   }
 }

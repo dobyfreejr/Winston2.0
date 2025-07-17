@@ -15,11 +15,22 @@ interface Case {
   description: string
   priority: 'critical' | 'high' | 'medium' | 'low'
   status: 'open' | 'investigating' | 'resolved' | 'closed'
+  progress: number // 0-100 percentage
   indicators: string[]
   assignee?: string
   createdAt: Date
   updatedAt: Date
   tags: string[]
+  notes: CaseNote[]
+}
+
+interface CaseNote {
+  id: string
+  caseId: string
+  content: string
+  author: string
+  timestamp: Date
+  type: 'note' | 'status_change' | 'assignment' | 'escalation'
 }
 
 interface ThreatDetection {
@@ -39,6 +50,7 @@ let searchHistory: SearchHistory[] = []
 let cases: Case[] = []
 let threatDetections: ThreatDetection[] = []
 let analysisRequests: { id: string; indicator: string; timestamp: Date; status: string }[] = []
+let caseNotes: CaseNote[] = []
 
 export const db = {
   // Search History
@@ -56,6 +68,8 @@ export const db = {
     const newCase = {
       ...caseData,
       id: Date.now().toString(),
+      progress: 0,
+      notes: [],
       createdAt: new Date(),
       updatedAt: new Date()
     }
@@ -72,6 +86,40 @@ export const db = {
       return cases[index]
     }
     return null
+  },
+  
+  // Case Notes
+  addCaseNote: (caseId: string, content: string, author: string = 'System', type: CaseNote['type'] = 'note') => {
+    const note: CaseNote = {
+      id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+      caseId,
+      content,
+      author,
+      timestamp: new Date(),
+      type
+    }
+    caseNotes.unshift(note)
+    
+    // Update case with note
+    const caseIndex = cases.findIndex(c => c.id === caseId)
+    if (caseIndex !== -1) {
+      cases[caseIndex].notes = [note, ...cases[caseIndex].notes]
+      cases[caseIndex].updatedAt = new Date()
+    }
+    
+    return note
+  },
+  
+  getCaseNotes: (caseId: string) => {
+    return caseNotes.filter(note => note.caseId === caseId).sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
+  },
+  
+  updateCaseProgress: (caseId: string, progress: number, author: string = 'System') => {
+    const updated = db.updateCase(caseId, { progress })
+    if (updated) {
+      db.addCaseNote(caseId, `Progress updated to ${progress}%`, author, 'status_change')
+    }
+    return updated
   },
   
   // Threat Detections
@@ -117,7 +165,10 @@ export const db = {
       threatsDetected: threatDetections.filter(t => t.timestamp >= last24h).length,
       cleanIndicators: searchHistory.filter(s => s.timestamp >= last24h && s.threatLevel === 'low').length,
       analysisRequests: analysisRequests.filter(r => r.timestamp >= lastWeek).length,
-      activeInvestigations: cases.filter(c => c.status === 'investigating').length
+      activeInvestigations: cases.filter(c => c.status === 'investigating').length,
+      totalCases: cases.length,
+      resolvedCases: cases.filter(c => c.status === 'resolved').length,
+      criticalCases: cases.filter(c => c.priority === 'critical' && c.status !== 'closed').length
     }
   }
 }
