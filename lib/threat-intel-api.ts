@@ -19,6 +19,8 @@ export async function analyzeWithVirusTotal(indicator: string, type: 'ip' | 'dom
     return data
   } catch (error) {
     console.error('VirusTotal API error:', error)
+    // Return mock data when API is not configured or fails
+    console.log('Falling back to mock data for VirusTotal')
     return getMockVirusTotalResponse(indicator, type)
   }
 }

@@ -3,9 +3,9 @@ import { NextRequest, NextResponse } from 'next/server'
 const VIRUSTOTAL_API_KEY = process.env.VIRUSTOTAL_API_KEY
 
 export async function POST(request: NextRequest) {
-  if (!VIRUSTOTAL_API_KEY || VIRUSTOTAL_API_KEY === 'your_virustotal_api_key_here') {
+  if (!VIRUSTOTAL_API_KEY || VIRUSTOTAL_API_KEY === 'your_virustotal_api_key_here' || VIRUSTOTAL_API_KEY.trim() === '') {
     return NextResponse.json(
-      { error: 'VirusTotal API key not configured' },
+      { error: 'VirusTotal API key not configured. Please add VIRUSTOTAL_API_KEY to your .env.local file.' },
       { status: 500 }
     )
   }
