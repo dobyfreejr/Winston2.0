@@ -19,6 +19,7 @@ import {
 import { VirusTotalResponse, IPGeolocation, DomainInfo, MalwareSample, ThreatIntelligence } from '@/types/threat-intel'
 import { formatDate, formatBytes } from '@/lib/utils'
 import { db } from '@/lib/database'
+import { activityTracker } from '@/lib/activity-tracker'
 
 export function IndicatorLookup() {
   const router = useRouter()
@@ -65,6 +66,12 @@ export function IndicatorLookup() {
       
       // Add to analysis requests
       db.addAnalysisRequest(indicator)
+      
+      // Track user activity
+      activityTracker.trackActivity('analyze', {
+        indicator,
+        indicatorType: type
+      })
       
       // Run all applicable analyses in parallel
       const promises: Promise<any>[] = [
@@ -127,6 +134,16 @@ export function IndicatorLookup() {
           timestamp: new Date(),
           source: 'Threat Intelligence Analysis',
           status: 'new'
+        })
+        
+        // Add to recent threats
+        activityTracker.addRecentThreat({
+          type: type === 'hash' ? 'malware' : type === 'ip' ? 'malicious_ip' : 'file_upload',
+          indicator,
+          threatLevel: 'high',
+          detectedBy: 'Threat Intelligence',
+          timestamp: new Date(),
+          details: newResults
         })
       }
       

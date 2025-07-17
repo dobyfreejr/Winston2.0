@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -23,8 +24,12 @@ import {
 import { formatDate } from '@/lib/utils'
 import { logger, LogEntry } from '@/lib/logger'
 import { db } from '@/lib/database'
+import { auth, User } from '@/lib/auth'
+import { UserManagement } from '@/components/auth/user-management'
 
 export default function AdminPage() {
+  const router = useRouter()
+  const [currentUser, setCurrentUser] = useState<User | null>(null)
   const [logs, setLogs] = useState<LogEntry[]>([])
   const [logStats, setLogStats] = useState<any>({})
   const [systemStats, setSystemStats] = useState<any>({})
@@ -35,6 +40,13 @@ export default function AdminPage() {
   })
 
   useEffect(() => {
+    const user = auth.getCurrentUser()
+    if (!user || !auth.hasPermission(user, 'admin_panel')) {
+      router.push('/')
+      return
+    }
+    setCurrentUser(user)
+    
     const updateData = () => {
       setLogs(logger.getLogs(100))
       setLogStats(logger.getLogStats())
@@ -46,6 +58,17 @@ export default function AdminPage() {
     
     return () => clearInterval(interval)
   }, [])
+
+  if (!currentUser || !auth.hasPermission(currentUser, 'admin_panel')) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-4">Access Denied</h1>
+          <p className="text-muted-foreground">Admin privileges required to access this page</p>
+        </div>
+      </div>
+    )
+  }
 
   const filteredLogs = logs.filter(log => {
     if (logFilter.level !== 'all' && log.level !== logFilter.level) return false
@@ -104,8 +127,9 @@ export default function AdminPage() {
       </div>
 
       <Tabs defaultValue="overview" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="users">Users</TabsTrigger>
           <TabsTrigger value="logs">System Logs</TabsTrigger>
           <TabsTrigger value="database">Database</TabsTrigger>
           <TabsTrigger value="settings">Settings</TabsTrigger>
@@ -183,6 +207,10 @@ export default function AdminPage() {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="users" className="space-y-6">
+          <UserManagement />
         </TabsContent>
 
         <TabsContent value="logs" className="space-y-6">

@@ -3,8 +3,10 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useEffect } from 'react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+import { auth } from '@/lib/auth'
 import { 
   Shield, 
   Search, 
@@ -25,13 +27,23 @@ const navigation = [
   { name: 'Indicators', href: '/indicators', icon: AlertTriangle },
   { name: 'Intelligence Feeds', href: '/feeds', icon: Database },
   { name: 'Network Analysis', href: '/network', icon: Globe },
-  { name: 'Admin Panel', href: '/admin', icon: Settings },
   { name: 'Settings', href: '/settings', icon: Settings },
 ]
 
 export function Navigation() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const pathname = usePathname()
+  const [currentUser, setCurrentUser] = useState<any>(null)
+
+  useEffect(() => {
+    const user = auth.getCurrentUser()
+    setCurrentUser(user)
+  }, [])
+
+  // Add admin panel to navigation if user has permission
+  const navigationItems = currentUser && auth.hasPermission(currentUser, 'admin_panel')
+    ? [...navigation.slice(0, -1), { name: 'Admin Panel', href: '/admin', icon: Settings }, navigation[navigation.length - 1]]
+    : navigation
 
   return (
     <>
@@ -46,7 +58,7 @@ export function Navigation() {
             <ul role="list" className="flex flex-1 flex-col gap-y-7">
               <li>
                 <ul role="list" className="-mx-2 space-y-1">
-                  {navigation.map((item) => {
+                  {navigationItems.map((item) => {
                     const Icon = item.icon
                     return (
                       <li key={item.name}>
