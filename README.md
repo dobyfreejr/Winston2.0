@@ -41,14 +41,14 @@ This platform integrates with several threat intelligence services:
    
    Create a `.env.local` file in the root directory:
    ```env
-   # Required API Keys
-   NEXT_PUBLIC_VIRUSTOTAL_API_KEY=your_virustotal_api_key_here
-   NEXT_PUBLIC_IPGEOLOCATION_API_KEY=your_ipgeolocation_api_key_here
-   NEXT_PUBLIC_WHOISXML_API_KEY=your_whoisxml_api_key_here
+   # Required API Keys (NO NEXT_PUBLIC_ prefix needed)
+   VIRUSTOTAL_API_KEY=your_virustotal_api_key_here
+   IPGEOLOCATION_API_KEY=your_ipgeolocation_api_key_here
+   WHOISXML_API_KEY=your_whoisxml_api_key_here
    
    # Optional API Keys
-   NEXT_PUBLIC_ABUSEIPDB_API_KEY=your_abuseipdb_api_key_here
-   NEXT_PUBLIC_URLVOID_API_KEY=your_urlvoid_api_key_here
+   ABUSEIPDB_API_KEY=your_abuseipdb_api_key_here
+   URLVOID_API_KEY=your_urlvoid_api_key_here
    ```
 
 4. **Get API Keys**
@@ -114,11 +114,26 @@ Be aware of API rate limits:
 - **WhoisXML**: 1,000 requests/month (free tier)
 - **AbuseIPDB**: 1,000 requests/day (free tier)
 
+## Architecture
+
+### CORS Solution
+To avoid CORS issues with external APIs, this platform uses Next.js API routes as proxies:
+- Client makes requests to `/api/virustotal/analyze`
+- Server-side API route makes the actual request to VirusTotal
+- Response is returned to the client
+
+This ensures all requests are same-origin and API keys remain secure on the server.
+
 ## Development
 
 ### Project Structure
 ```
 ├── app/                    # Next.js app directory
+│   ├── api/               # API routes (CORS proxies)
+│   │   ├── virustotal/   # VirusTotal proxy
+│   │   ├── ipgeolocation/ # IPGeolocation proxy
+│   │   ├── whoisxml/     # WhoisXML proxy
+│   │   └── abuseipdb/    # AbuseIPDB proxy
 ├── components/            # React components
 │   ├── dashboard/        # Dashboard components
 │   ├── layout/          # Layout components
@@ -130,10 +145,11 @@ Be aware of API rate limits:
 ```
 
 ### Adding New APIs
-1. Add API key to `.env.local`
-2. Create API integration function in `lib/threat-intel-api.ts`
-3. Update types in `types/threat-intel.ts`
-4. Add UI components as needed
+1. Add API key to `.env.local` (without NEXT_PUBLIC_ prefix)
+2. Create API route in `app/api/[service]/route.ts`
+3. Update client-side function in `lib/threat-intel-api.ts`
+4. Update types in `types/threat-intel.ts`
+5. Add UI components as needed
 
 ## Deployment
 
@@ -150,12 +166,13 @@ Be aware of API rate limits:
 
 3. **Configure environment variables**
    - Add all API keys to your deployment platform's environment variables
-   - Remove the `NEXT_PUBLIC_` prefix for server-side only keys if needed
+   - Do NOT use the `NEXT_PUBLIC_` prefix (keys are server-side only)
 
 ## Security Considerations
 
-- API keys are exposed to the client side (NEXT_PUBLIC_ prefix)
-- For production, consider moving sensitive API calls to server-side API routes
+- API keys are kept server-side only (no NEXT_PUBLIC_ prefix)
+- All external API calls go through Next.js API routes
+- CORS issues are resolved through server-side proxying
 - Implement rate limiting to prevent API abuse
 - Use HTTPS in production
 - Regularly rotate API keys

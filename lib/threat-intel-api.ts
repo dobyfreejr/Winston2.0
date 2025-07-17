@@ -1,43 +1,14 @@
 import { VirusTotalResponse, IPGeolocation, DomainInfo, MalwareSample, ThreatIntelligence } from '@/types/threat-intel'
 
-const VIRUSTOTAL_API_KEY = process.env.NEXT_PUBLIC_VIRUSTOTAL_API_KEY
-const IPGEOLOCATION_API_KEY = process.env.NEXT_PUBLIC_IPGEOLOCATION_API_KEY
-const WHOISXML_API_KEY = process.env.NEXT_PUBLIC_WHOISXML_API_KEY
-const ABUSEIPDB_API_KEY = process.env.NEXT_PUBLIC_ABUSEIPDB_API_KEY
-const URLVOID_API_KEY = process.env.NEXT_PUBLIC_URLVOID_API_KEY
-
-// VirusTotal API Integration
+// VirusTotal API Integration via Next.js API route
 export async function analyzeWithVirusTotal(indicator: string, type: 'ip' | 'domain' | 'hash' | 'url'): Promise<VirusTotalResponse> {
-  if (!VIRUSTOTAL_API_KEY || VIRUSTOTAL_API_KEY === 'your_virustotal_api_key_here') {
-    console.warn('VirusTotal API key not configured, using mock data')
-    return getMockVirusTotalResponse(indicator, type)
-  }
-
   try {
-    let endpoint = ''
-    let identifier = indicator
-
-    switch (type) {
-      case 'ip':
-        endpoint = `https://www.virustotal.com/api/v3/ip_addresses/${indicator}`
-        break
-      case 'domain':
-        endpoint = `https://www.virustotal.com/api/v3/domains/${indicator}`
-        break
-      case 'url':
-        // URL needs to be base64 encoded without padding
-        identifier = btoa(indicator).replace(/=/g, '')
-        endpoint = `https://www.virustotal.com/api/v3/urls/${identifier}`
-        break
-      case 'hash':
-        endpoint = `https://www.virustotal.com/api/v3/files/${indicator}`
-        break
-    }
-
-    const response = await fetch(endpoint, {
+    const response = await fetch('/api/virustotal/analyze', {
+      method: 'POST',
       headers: {
-        'X-Apikey': VIRUSTOTAL_API_KEY
-      }
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ indicator, type })
     })
 
     if (!response.ok) {
@@ -52,72 +23,53 @@ export async function analyzeWithVirusTotal(indicator: string, type: 'ip' | 'dom
   }
 }
 
-// IP Geolocation API Integration
+// IP Geolocation API Integration via Next.js API route
 export async function getIPGeolocation(ip: string): Promise<IPGeolocation> {
-  if (!IPGEOLOCATION_API_KEY || IPGEOLOCATION_API_KEY === 'your_ipgeolocation_api_key_here') {
-    console.warn('IPGeolocation API key not configured, using mock data')
-    return getMockIPGeolocation(ip)
-  }
-
   try {
-    const response = await fetch(`https://api.ipgeolocation.io/ipgeo?apiKey=${IPGEOLOCATION_API_KEY}&ip=${ip}`)
-    
+    const response = await fetch('/api/ipgeolocation/lookup', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ ip })
+    })
+
     if (!response.ok) {
       throw new Error(`IPGeolocation API error: ${response.status}`)
     }
 
     const data = await response.json()
-    
-    return {
-      ip: data.ip,
-      country: data.country_name,
-      country_code: data.country_code2,
-      region: data.state_prov,
-      city: data.city,
-      latitude: parseFloat(data.latitude),
-      longitude: parseFloat(data.longitude),
-      isp: data.isp,
-      organization: data.organization,
-      timezone: data.time_zone.name
-    }
+    return data
   } catch (error) {
     console.error('IPGeolocation API error:', error)
     return getMockIPGeolocation(ip)
   }
 }
 
-// WhoisXML API Integration for Domain Info
+// WhoisXML API Integration via Next.js API route
 export async function getDomainInfo(domain: string): Promise<DomainInfo> {
-  if (!WHOISXML_API_KEY || WHOISXML_API_KEY === 'your_whoisxml_api_key_here') {
-    console.warn('WhoisXML API key not configured, using mock data')
-    return getMockDomainInfo(domain)
-  }
-
   try {
-    const response = await fetch(`https://www.whoisxmlapi.com/whoisserver/WhoisService?apiKey=${WHOISXML_API_KEY}&domainName=${domain}&outputFormat=JSON`)
-    
+    const response = await fetch('/api/whoisxml/domain', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ domain })
+    })
+
     if (!response.ok) {
       throw new Error(`WhoisXML API error: ${response.status}`)
     }
 
     const data = await response.json()
-    const whoisRecord = data.WhoisRecord
-
-    return {
-      domain,
-      registrar: whoisRecord.registrarName || 'Unknown',
-      creation_date: whoisRecord.createdDate || 'Unknown',
-      expiration_date: whoisRecord.expiresDate || 'Unknown',
-      name_servers: whoisRecord.nameServers?.hostNames || [],
-      status: whoisRecord.status || []
-    }
+    return data
   } catch (error) {
     console.error('WhoisXML API error:', error)
     return getMockDomainInfo(domain)
   }
 }
 
-// Malware Bazaar API Integration
+// Malware Bazaar API Integration (direct, no CORS issues)
 export async function searchMalwareBazaar(hash: string): Promise<MalwareSample[]> {
   try {
     const response = await fetch('https://mb-api.abuse.ch/api/v1/', {
@@ -160,25 +112,23 @@ export async function searchMalwareBazaar(hash: string): Promise<MalwareSample[]
   }
 }
 
-// AbuseIPDB Integration (if API key is available)
+// AbuseIPDB Integration via Next.js API route
 export async function checkAbuseIPDB(ip: string): Promise<any> {
-  if (!ABUSEIPDB_API_KEY || ABUSEIPDB_API_KEY === 'your_abuseipdb_api_key_here') {
-    return null
-  }
-
   try {
-    const response = await fetch(`https://api.abuseipdb.com/api/v2/check?ipAddress=${ip}&maxAgeInDays=90&verbose`, {
+    const response = await fetch('/api/abuseipdb/check', {
+      method: 'POST',
       headers: {
-        'Key': ABUSEIPDB_API_KEY,
-        'Accept': 'application/json'
-      }
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ ip })
     })
 
     if (!response.ok) {
-      throw new Error(`AbuseIPDB API error: ${response.status}`)
+      return null
     }
 
-    return await response.json()
+    const data = await response.json()
+    return data
   } catch (error) {
     console.error('AbuseIPDB API error:', error)
     return null

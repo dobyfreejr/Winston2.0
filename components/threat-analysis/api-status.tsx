@@ -40,10 +40,10 @@ export function APIStatus() {
       description: 'IP abuse reports (optional)'
     },
     {
-      name: 'URLVoid',
-      configured: false,
-      status: 'inactive',
-      description: 'URL reputation checking (optional)'
+      name: 'Malware Bazaar',
+      configured: true,
+      status: 'active',
+      description: 'Malware sample database (free, no API key required)'
     }
   ])
 
@@ -51,36 +51,39 @@ export function APIStatus() {
     const newStatuses = apiStatuses.map(api => ({ ...api, status: 'checking' as const }))
     setApiStatuses(newStatuses)
 
-    // Check environment variables
-    const vtKey = process.env.NEXT_PUBLIC_VIRUSTOTAL_API_KEY
-    const ipGeoKey = process.env.NEXT_PUBLIC_IPGEOLOCATION_API_KEY
-    const whoisKey = process.env.NEXT_PUBLIC_WHOISXML_API_KEY
-    const abuseKey = process.env.NEXT_PUBLIC_ABUSEIPDB_API_KEY
-    const urlVoidKey = process.env.NEXT_PUBLIC_URLVOID_API_KEY
+    // Test each API endpoint
+    const testResults = await Promise.allSettled([
+      fetch('/api/virustotal/analyze', { method: 'POST', body: JSON.stringify({ indicator: 'test', type: 'ip' }) }),
+      fetch('/api/ipgeolocation/lookup', { method: 'POST', body: JSON.stringify({ ip: '8.8.8.8' }) }),
+      fetch('/api/whoisxml/domain', { method: 'POST', body: JSON.stringify({ domain: 'example.com' }) }),
+      fetch('/api/abuseipdb/check', { method: 'POST', body: JSON.stringify({ ip: '8.8.8.8' }) })
+    ])
 
-    const updatedStatuses = newStatuses.map(api => {
+    const updatedStatuses = newStatuses.map((api, index) => {
+      if (api.name === 'Malware Bazaar') {
+        return { ...api, configured: true, status: 'active' as const }
+      }
+
+      const result = testResults[index]
       let configured = false
       let status: 'active' | 'inactive' | 'error' = 'inactive'
 
-      switch (api.name) {
-        case 'VirusTotal':
-          configured = !!(vtKey && vtKey !== 'your_virustotal_api_key_here')
-          break
-        case 'IPGeolocation':
-          configured = !!(ipGeoKey && ipGeoKey !== 'your_ipgeolocation_api_key_here')
-          break
-        case 'WhoisXML':
-          configured = !!(whoisKey && whoisKey !== 'your_whoisxml_api_key_here')
-          break
-        case 'AbuseIPDB':
-          configured = !!(abuseKey && abuseKey !== 'your_abuseipdb_api_key_here')
-          break
-        case 'URLVoid':
-          configured = !!(urlVoidKey && urlVoidKey !== 'your_urlvoid_api_key_here')
-          break
+      if (result.status === 'fulfilled') {
+        const response = result.value
+        if (response.ok) {
+          configured = true
+          status = 'active'
+        } else if (response.status === 500) {
+          // API key not configured
+          configured = false
+          status = 'inactive'
+        } else {
+          configured = true
+          status = 'error'
+        }
+      } else {
+        status = 'error'
       }
-
-      status = configured ? 'active' : 'inactive'
 
       return { ...api, configured, status }
     })
@@ -108,6 +111,9 @@ export function APIStatus() {
   const getStatusBadge = (status: string, configured: boolean) => {
     if (status === 'checking') {
       return <Badge variant="default">Checking...</Badge>
+    }
+    if (status === 'error') {
+      return <Badge variant="destructive">Error</Badge>
     }
     if (!configured) {
       return <Badge variant="secondary">Not Configured</Badge>
@@ -152,7 +158,7 @@ export function APIStatus() {
           <ol className="text-sm space-y-1 list-decimal list-inside">
             <li>Create accounts with the threat intelligence providers</li>
             <li>Get your API keys from each service</li>
-            <li>Add them to your <code>.env.local</code> file</li>
+            <li>Add them to your <code>.env.local</code> file (without NEXT_PUBLIC_ prefix)</li>
             <li>Restart the development server</li>
             <li>Click "Refresh" to verify the configuration</li>
           </ol>
