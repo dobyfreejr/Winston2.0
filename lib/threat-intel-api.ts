@@ -47,6 +47,14 @@ export async function getIPGeolocation(ip: string): Promise<IPGeolocation> {
     })
 
     if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}))
+      
+      if (errorData.configured === false) {
+        console.warn('IPGeolocation API not configured, using mock data')
+        logger.warn('api', `IPGeolocation API not configured for ${ip}, falling back to mock data`)
+        return getMockIPGeolocation(ip)
+      }
+      
       throw new Error(`IPGeolocation API error: ${response.status}`)
     }
 
@@ -54,7 +62,9 @@ export async function getIPGeolocation(ip: string): Promise<IPGeolocation> {
     logger.info('api', `IP geolocation lookup completed: ${ip}`)
     return data
   } catch (error) {
-    logger.error('api', `IPGeolocation API error for ${ip}`, error)
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    logger.error('api', `IPGeolocation API error for ${ip}: ${errorMessage}`, error)
+    logger.warn('api', `Falling back to mock data for IPGeolocation: ${ip}`)
     return getMockIPGeolocation(ip)
   }
 }
