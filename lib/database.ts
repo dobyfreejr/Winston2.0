@@ -15,7 +15,7 @@ interface Case {
   description: string
   priority: 'critical' | 'high' | 'medium' | 'low'
   status: 'open' | 'investigating' | 'resolved' | 'closed'
-  progress: number // 0-100 percentage
+  timeSpent: number // Time spent in hours
   indicators: string[]
   assignee?: string
   createdAt: Date
@@ -68,7 +68,7 @@ export const db = {
     const newCase = {
       ...caseData,
       id: Date.now().toString(),
-      progress: 0,
+      timeSpent: 0,
       notes: [],
       createdAt: new Date(),
       updatedAt: new Date()
@@ -114,10 +114,10 @@ export const db = {
     return caseNotes.filter(note => note.caseId === caseId).sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
   },
   
-  updateCaseProgress: (caseId: string, progress: number, author: string = 'System') => {
-    const updated = db.updateCase(caseId, { progress })
+  updateCaseTimeSpent: (caseId: string, timeSpent: number, author: string = 'System') => {
+    const updated = db.updateCase(caseId, { timeSpent })
     if (updated) {
-      db.addCaseNote(caseId, `Progress updated to ${progress}%`, author, 'status_change')
+      db.addCaseNote(caseId, `Time spent updated to ${timeSpent} hours`, author, 'status_change')
     }
     return updated
   },

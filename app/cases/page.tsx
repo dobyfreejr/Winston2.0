@@ -33,7 +33,7 @@ export default function CasesPage() {
     title: '',
     description: '',
     priority: 'medium',
-    progress: 0,
+    timeSpent: 0,
     indicators: '',
     assignee: '',
     tags: ''
@@ -96,7 +96,7 @@ export default function CasesPage() {
       description: newCase.description,
       priority: newCase.priority as any,
       status: 'open',
-      progress: newCase.progress,
+      timeSpent: newCase.timeSpent,
       indicators,
       assignee: newCase.assignee || undefined,
       tags
@@ -108,7 +108,7 @@ export default function CasesPage() {
       title: '',
       description: '',
       priority: 'medium',
-      progress: 0,
+      timeSpent: 0,
       indicators: '',
       assignee: '',
       tags: ''
@@ -122,9 +122,9 @@ export default function CasesPage() {
     logger.info('case', `Case status updated: ${caseId} -> ${status}`)
   }
   
-  const updateCaseProgress = (caseId: string, progress: number) => {
-    db.updateCaseProgress(caseId, progress, 'Admin')
-    logger.info('case', `Case progress updated: ${caseId} -> ${progress}%`)
+  const updateCaseTimeSpent = (caseId: string, timeSpent: number) => {
+    db.updateCaseTimeSpent(caseId, timeSpent, 'Admin')
+    logger.info('case', `Case time spent updated: ${caseId} -> ${timeSpent} hours`)
   }
   
   const addNote = () => {
@@ -363,14 +363,14 @@ export default function CasesPage() {
                 </div>
                 
                 <div>
-                  <Label htmlFor="progress">Initial Progress (%)</Label>
+                  <Label htmlFor="timeSpent">Initial Time Spent (hours)</Label>
                   <Input
-                    id="progress"
+                    id="timeSpent"
                     type="number"
                     min="0"
-                    max="100"
-                    value={newCase.progress}
-                    onChange={(e) => setNewCase({...newCase, progress: parseInt(e.target.value) || 0})}
+                    step="0.5"
+                    value={newCase.timeSpent}
+                    onChange={(e) => setNewCase({...newCase, timeSpent: parseFloat(e.target.value) || 0})}
                     placeholder="0"
                   />
                 </div>
@@ -378,32 +378,18 @@ export default function CasesPage() {
               
               <CardContent>
                 <div className="space-y-4">
-                  {/* Progress Bar */}
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-medium">Progress</span>
-                      <span className="text-sm text-muted-foreground">{case_.progress}%</span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div 
-                        className="bg-blue-600 h-2 rounded-full transition-all duration-300" 
-                        style={{ width: `${case_.progress}%` }}
-                      />
-                    </div>
-                  </div>
-                  
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                     <div>
                       <span className="font-medium">Case ID:</span>
                       <p className="text-muted-foreground">{case_.id}</p>
                     </div>
                     <div>
-                      <span className="font-medium">Created:</span>
-                      <p className="text-muted-foreground">{formatDate(case_.createdAt)}</p>
+                      <span className="font-medium">Time Spent:</span>
+                      <p className="text-muted-foreground">{case_.timeSpent} hours</p>
                     </div>
                     <div>
-                      <span className="font-medium">Updated:</span>
-                      <p className="text-muted-foreground">{formatDate(case_.updatedAt)}</p>
+                      <span className="font-medium">Created:</span>
+                      <p className="text-muted-foreground">{formatDate(case_.createdAt)}</p>
                     </div>
                     <div>
                       <span className="font-medium">Assignee:</span>
@@ -437,18 +423,18 @@ export default function CasesPage() {
                     </div>
                   )}
                   
-                  {/* Quick Progress Update */}
+                  {/* Quick Time Spent Update */}
                   <div className="flex items-center space-x-2">
-                    <Label className="text-sm">Update Progress:</Label>
+                    <Label className="text-sm">Update Time Spent:</Label>
                     <Input
                       type="number"
                       min="0"
-                      max="100"
-                      value={case_.progress}
-                      onChange={(e) => updateCaseProgress(case_.id, parseInt(e.target.value) || 0)}
+                      step="0.5"
+                      value={case_.timeSpent}
+                      onChange={(e) => updateCaseTimeSpent(case_.id, parseFloat(e.target.value) || 0)}
                       className="w-20"
                     />
-                    <span className="text-sm text-muted-foreground">%</span>
+                    <span className="text-sm text-muted-foreground">hours</span>
                   </div>
                 </div>
               </CardContent>
@@ -477,27 +463,22 @@ export default function CasesPage() {
           
           {selectedCase && (
             <div className="space-y-6">
-              {/* Progress Section */}
-              <div>
-                <h4 className="font-medium mb-2">Investigation Progress</h4>
-                <div className="flex items-center space-x-4">
-                  <div className="flex-1">
-                    <div className="w-full bg-gray-200 rounded-full h-3">
-                      <div 
-                        className="bg-blue-600 h-3 rounded-full transition-all duration-300" 
-                        style={{ width: `${selectedCase.progress}%` }}
-                      />
-                    </div>
-                  </div>
-                  <span className="text-sm font-medium">{selectedCase.progress}%</span>
-                </div>
-              </div>
-              
               {/* Case Information */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
+                  <h4 className="font-medium mb-2">Time Spent</h4>
+                  <p className="text-sm text-muted-foreground">{selectedCase.timeSpent} hours</p>
+                </div>
+                <div>
                   <h4 className="font-medium mb-2">Assignee</h4>
                   <p className="text-sm text-muted-foreground">{selectedCase.assignee || 'Unassigned'}</p>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <h4 className="font-medium mb-2">Created</h4>
+                  <p className="text-sm text-muted-foreground">{formatDate(selectedCase.createdAt)}</p>
                 </div>
                 <div>
                   <h4 className="font-medium mb-2">Last Updated</h4>

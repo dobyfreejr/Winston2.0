@@ -136,6 +136,7 @@ export function IndicatorLookup() {
       description: `Case created from threat analysis. Reputation score: ${results.threatIntel.reputation_score}/100`,
       priority: threatLevel,
       status: 'open',
+      timeSpent: 0,
       indicators: [indicator],
       tags: [detectIndicatorType(indicator), ...results.threatIntel.threat_types]
     })
