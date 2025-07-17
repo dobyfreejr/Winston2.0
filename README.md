@@ -62,17 +62,67 @@ To use this platform with real threat intelligence data, you'll need API keys fr
 - **Assign Cases**: Team collaboration features
 - **Link Indicators**: Associate IOCs with cases
 
+### **Network Analysis API**
+- **Real-time Data Ingestion**: Send network connections and assets via API
+- **Live Monitoring**: View network activity as it happens
+- **Threat Detection**: Automatic flagging of suspicious connections
+- **Asset Discovery**: Track network devices and their security status
+
 ### **Dynamic Dashboard**
 - **Real-time Stats**: Based on your actual analysis activity
 - **Recent Activity**: Your search history and findings
 - **Threat Detections**: Automatically flagged high-risk indicators
 - **Case Overview**: Active investigations status
 
-### **No Test Data**
-- **Clean Start**: No prefilled or mock data
-- **Your Data Only**: All statistics based on your actual usage
-- **Real Intelligence**: Live threat intelligence feeds
-- **Production Ready**: Built for real SOC operations
+## 📡 **Network Analysis API**
+
+### **Send Network Connections:**
+```bash
+curl -X POST http://localhost:3000/api/network/connections \
+  -H "Content-Type: application/json" \
+  -d '{
+    "type": "connection",
+    "data": {
+      "sourceIp": "192.168.1.100",
+      "destIp": "185.220.101.42",
+      "sourcePort": 49152,
+      "destPort": 443,
+      "protocol": "TCP",
+      "status": "active",
+      "bytes": 1024000,
+      "packets": 850,
+      "country": "Russia",
+      "threatLevel": "high"
+    }
+  }'
+```
+
+### **Send Network Assets:**
+```bash
+curl -X POST http://localhost:3000/api/network/connections \
+  -H "Content-Type: application/json" \
+  -d '{
+    "type": "asset",
+    "data": {
+      "ip": "192.168.1.100",
+      "hostname": "workstation-01",
+      "type": "workstation",
+      "os": "Windows 11",
+      "status": "online",
+      "openPorts": [135, 139, 445, 3389],
+      "vulnerabilities": 2
+    }
+  }'
+```
+
+### **Get Network Data:**
+```bash
+# Get connections
+curl http://localhost:3000/api/network/connections?type=connections
+
+# Get assets
+curl http://localhost:3000/api/network/connections?type=assets
+```
 
 ## 📊 **How It Works**
 
@@ -143,4 +193,4 @@ Add user authentication:
 4. **Regular Analysis**: Build up your threat intelligence database
 5. **Team Workflow**: Assign cases and track progress
 
-This is a **production-ready SOC platform** with no test data - everything you see will be based on your actual threat intelligence analysis and case management activities!
+This is a **production-ready SOC platform** with API-driven network analysis - send your network data via API and see it visualized in real-time on the Network Analysis page!

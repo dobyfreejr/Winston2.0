@@ -17,7 +17,8 @@ import {
   Filter,
   RefreshCw,
   Eye,
-  Download
+  Download,
+  Trash2
 } from 'lucide-react'
 import { formatDate } from '@/lib/utils'
 
@@ -49,92 +50,63 @@ interface NetworkAsset {
 }
 
 export default function NetworkPage() {
-  const [connections, setConnections] = useState<NetworkConnection[]>([
-    {
-      id: '1',
-      sourceIp: '192.168.1.100',
-      destIp: '185.220.101.42',
-      sourcePort: 49152,
-      destPort: 443,
-      protocol: 'TCP',
-      status: 'suspicious',
-      bytes: 1024000,
-      packets: 850,
-      timestamp: new Date(Date.now() - 5 * 60 * 1000),
-      country: 'Russia',
-      threatLevel: 'high'
-    },
-    {
-      id: '2',
-      sourceIp: '192.168.1.50',
-      destIp: '8.8.8.8',
-      sourcePort: 53,
-      destPort: 53,
-      protocol: 'UDP',
-      status: 'active',
-      bytes: 512,
-      packets: 4,
-      timestamp: new Date(Date.now() - 2 * 60 * 1000),
-      country: 'United States',
-      threatLevel: 'low'
-    },
-    {
-      id: '3',
-      sourceIp: '192.168.1.75',
-      destIp: '104.16.249.249',
-      sourcePort: 49153,
-      destPort: 80,
-      protocol: 'TCP',
-      status: 'active',
-      bytes: 2048000,
-      packets: 1200,
-      timestamp: new Date(Date.now() - 1 * 60 * 1000),
-      country: 'United States',
-      threatLevel: 'low'
-    }
-  ])
-
-  const [assets, setAssets] = useState<NetworkAsset[]>([
-    {
-      id: '1',
-      ip: '192.168.1.1',
-      hostname: 'gateway.local',
-      type: 'router',
-      os: 'RouterOS',
-      status: 'online',
-      lastSeen: new Date(),
-      openPorts: [22, 80, 443],
-      vulnerabilities: 0
-    },
-    {
-      id: '2',
-      ip: '192.168.1.100',
-      hostname: 'workstation-01',
-      type: 'workstation',
-      os: 'Windows 11',
-      status: 'suspicious',
-      lastSeen: new Date(Date.now() - 5 * 60 * 1000),
-      openPorts: [135, 139, 445, 3389],
-      vulnerabilities: 2
-    },
-    {
-      id: '3',
-      ip: '192.168.1.50',
-      hostname: 'server-01',
-      type: 'server',
-      os: 'Ubuntu 22.04',
-      status: 'online',
-      lastSeen: new Date(Date.now() - 30 * 1000),
-      openPorts: [22, 80, 443, 3306],
-      vulnerabilities: 1
-    }
-  ])
+  const [connections, setConnections] = useState<NetworkConnection[]>([])
+  const [assets, setAssets] = useState<NetworkAsset[]>([])
 
   const [filteredConnections, setFilteredConnections] = useState(connections)
   const [filteredAssets, setFilteredAssets] = useState(assets)
   const [connectionFilter, setConnectionFilter] = useState('all')
   const [assetFilter, setAssetFilter] = useState('all')
   const [searchTerm, setSearchTerm] = useState('')
+  const [loading, setLoading] = useState(false)
+
+  // Fetch data from API
+  const fetchData = async () => {
+    setLoading(true)
+    try {
+      // Fetch connections
+      const connectionsResponse = await fetch('/api/network/connections?type=connections')
+      if (connectionsResponse.ok) {
+        const connectionsData = await connectionsResponse.json()
+        setConnections(connectionsData.data || [])
+      }
+
+      // Fetch assets
+      const assetsResponse = await fetch('/api/network/connections?type=assets')
+      if (assetsResponse.ok) {
+        const assetsData = await assetsResponse.json()
+        setAssets(assetsData.data || [])
+      }
+    } catch (error) {
+      console.error('Error fetching network data:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Clear all data
+  const clearData = async (type: 'connections' | 'assets') => {
+    try {
+      const response = await fetch(`/api/network/connections?type=${type}`, {
+        method: 'DELETE'
+      })
+      if (response.ok) {
+        if (type === 'connections') {
+          setConnections([])
+        } else {
+          setAssets([])
+        }
+      }
+    } catch (error) {
+      console.error(`Error clearing ${type}:`, error)
+    }
+  }
+
+  useEffect(() => {
+    fetchData()
+    const interval = setInterval(fetchData, 30000) // Refresh every 30 seconds
+    return () => clearInterval(interval)
+  }, [])
 
   useEffect(() => {
     let filtered = connections
@@ -210,14 +182,16 @@ export default function NetworkPage() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Network Analysis</h1>
           <p className="text-muted-foreground">
-            Monitor network connections, assets, and security events
+            Real-time network connections and asset monitoring via API
           </p>
         </div>
         
-        <Button>
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Refresh Data
-        </Button>
+        <div className="flex space-x-2">
+          <Button onClick={fetchData} disabled={loading}>
+            <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+        </div>
       </div>
 
       {/* Statistics */}
@@ -294,6 +268,16 @@ export default function NetworkPage() {
                     <SelectItem value="closed">Closed</SelectItem>
                   </SelectContent>
                 </Select>
+                
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => clearData('connections')}
+                  className="text-red-600 hover:text-red-700"
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Clear All
+                </Button>
               </div>
             </CardContent>
           </Card>
@@ -305,8 +289,8 @@ export default function NetworkPage() {
                 <CardContent className="text-center py-12">
                   <div className="text-muted-foreground">
                     <Network className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                    <p className="text-lg font-medium">No connections found</p>
-                    <p>Adjust your filters or check network monitoring</p>
+                    <p className="text-lg font-medium">No network connections</p>
+                    <p>Send data to <code>/api/network/connections</code> to see connections here</p>
                   </div>
                 </CardContent>
               </Card>
@@ -388,6 +372,16 @@ export default function NetworkPage() {
                     <SelectItem value="suspicious">Suspicious</SelectItem>
                   </SelectContent>
                 </Select>
+                
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => clearData('assets')}
+                  className="text-red-600 hover:text-red-700"
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Clear All
+                </Button>
               </div>
             </CardContent>
           </Card>
@@ -399,8 +393,8 @@ export default function NetworkPage() {
                 <CardContent className="text-center py-12">
                   <div className="text-muted-foreground">
                     <Globe className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                    <p className="text-lg font-medium">No assets found</p>
-                    <p>Adjust your filters or check asset discovery</p>
+                    <p className="text-lg font-medium">No network assets</p>
+                    <p>Send data to <code>/api/network/connections</code> to see assets here</p>
                   </div>
                 </CardContent>
               </Card>
