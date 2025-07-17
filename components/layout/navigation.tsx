@@ -7,6 +7,7 @@ import { useEffect } from 'react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { auth } from '@/lib/auth'
+import { activityTracker } from '@/lib/activity-tracker'
 import { 
   Shield, 
   Search, 
@@ -17,7 +18,8 @@ import {
   AlertTriangle,
   Database,
   Globe,
-  FileText
+  FileText,
+  LogOut
 } from 'lucide-react'
 
 const navigation = [
@@ -39,6 +41,15 @@ export function Navigation() {
     const user = auth.getCurrentUser()
     setCurrentUser(user)
   }, [])
+
+  const handleLogout = () => {
+    if (currentUser) {
+      activityTracker.trackActivity('logout', { page: 'navigation' })
+      auth.logout()
+      // Trigger auth change event
+      window.dispatchEvent(new Event('auth-change'))
+    }
+  }
 
   // Add admin panel to navigation if user has permission
   const navigationItems = currentUser && auth.hasPermission(currentUser, 'admin_panel')
@@ -83,6 +94,23 @@ export function Navigation() {
                     )
                   })}
                 </ul>
+              </li>
+              
+              {/* User Info & Logout */}
+              <li className="mt-auto">
+                <div className="border-t border-border pt-4">
+                  <div className="px-2 py-2 text-sm text-muted-foreground">
+                    Logged in as: <span className="font-medium text-foreground">{currentUser?.username}</span>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    onClick={handleLogout}
+                    className="w-full justify-start text-muted-foreground hover:text-red-600 hover:bg-red-50"
+                  >
+                    <LogOut className="h-4 w-4 mr-3" />
+                    Logout
+                  </Button>
+                </div>
               </li>
             </ul>
           </nav>
