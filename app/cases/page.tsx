@@ -268,6 +268,16 @@ export default function CasesPage() {
                 />
               </div>
               
+              <div>
+                <Label htmlFor="tags">Tags (comma-separated)</Label>
+                <Input
+                  id="tags"
+                  value={newCase.tags}
+                  onChange={(e) => setNewCase({...newCase, tags: e.target.value})}
+                  placeholder="malware, phishing, apt"
+                />
+              </div>
+              
               <div className="flex justify-end space-x-2">
                 <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
                   Cancel
@@ -389,6 +399,10 @@ export default function CasesPage() {
                     <div>
                       <span className="font-medium">Assignee:</span>
                       <p className="text-muted-foreground">{case_.assignee || 'Unassigned'}</p>
+                    </div>
+                    <div>
+                      <span className="font-medium">Updated:</span>
+                      <p className="text-muted-foreground">{formatDate(case_.updatedAt)}</p>
                     </div>
                   </div>
                   
