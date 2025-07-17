@@ -327,7 +327,7 @@ export default function CasesPage() {
         ) : (
           filteredCases.map((case_) => (
             <Card key={case_.id}>
-              <CardHeader>
+              <CardHeader className={highlightCaseId === case_.id ? 'bg-blue-50 border-blue-200' : ''}>
                 <div className="flex items-start justify-between">
                   <div className="space-y-2">
                     <div className="flex items-center space-x-2">
