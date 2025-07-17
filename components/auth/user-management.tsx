@@ -8,14 +8,16 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
-import { Plus, Edit, Trash2, Users, Shield, UserCheck } from 'lucide-react'
+import { Plus, Edit, Trash2, Users, Shield, UserCheck, Globe, AlertTriangle, Eye } from 'lucide-react'
 import { formatDate } from '@/lib/utils'
-import { auth, User } from '@/lib/auth'
+import { auth, User, LoginRecord } from '@/lib/auth'
 
 export function UserManagement() {
   const [users, setUsers] = useState<User[]>([])
   const [currentUser, setCurrentUser] = useState<User | null>(null)
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
+  const [selectedUser, setSelectedUser] = useState<User | null>(null)
+  const [isLoginHistoryOpen, setIsLoginHistoryOpen] = useState(false)
   const [newUser, setNewUser] = useState({
     username: '',
     password: '',
@@ -40,6 +42,7 @@ export function UserManagement() {
         username: newUser.username,
         password: newUser.password,
         role: newUser.role,
+        loginHistory: [],
         isActive: true
       }, currentUser.id)
 
@@ -92,6 +95,23 @@ export function UserManagement() {
       case 'analyst': return <Users className="h-4 w-4" />
       default: return <Users className="h-4 w-4" />
     }
+  }
+
+  const viewLoginHistory = (user: User) => {
+    setSelectedUser(user)
+    setIsLoginHistoryOpen(true)
+  }
+
+  const getLoginStatusColor = (login: LoginRecord) => {
+    if (!login.success) return 'destructive'
+    if (login.isUnusual) return 'default'
+    return 'secondary'
+  }
+
+  const getLoginStatusIcon = (login: LoginRecord) => {
+    if (!login.success) return <AlertTriangle className="h-3 w-3" />
+    if (login.isUnusual) return <Globe className="h-3 w-3" />
+    return null
   }
 
   if (!currentUser || !auth.hasPermission(currentUser, 'admin_panel')) {
@@ -196,15 +216,52 @@ export function UserManagement() {
                     <Badge variant={user.isActive ? 'secondary' : 'outline'}>
                       {user.isActive ? 'Active' : 'Inactive'}
                     </Badge>
+                    {user.loginHistory.some(login => login.isUnusual && login.success) && (
+                      <Badge variant="default">
+                        <AlertTriangle className="h-3 w-3 mr-1" />
+                        Unusual Login
+                      </Badge>
+                    )}
                   </div>
-                  <div className="text-sm text-muted-foreground">
-                    Created: {formatDate(user.createdAt)}
-                    {user.lastLogin && ` • Last login: ${formatDate(user.lastLogin)}`}
-                    {user.lastLoginIp && ` • IP: ${user.lastLoginIp}`}
+                  <div className="text-sm text-muted-foreground space-y-1">
+                    <div>Created: {formatDate(user.createdAt)}</div>
+                    {user.lastLogin && (
+                      <div className="flex items-center space-x-2">
+                        <span>Last login: {formatDate(user.lastLogin)}</span>
+                        {user.loginHistory[0] && (
+                          <>
+                            <span>•</span>
+                            <span className="font-mono text-xs bg-muted px-1 py-0.5 rounded">
+                              {user.loginHistory[0].ipAddress}
+                            </span>
+                            {user.loginHistory[0].isUnusual && (
+                              <Badge variant="outline" className="text-xs">
+                                <AlertTriangle className="h-3 w-3 mr-1" />
+                                Unusual
+                              </Badge>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    )}
+                    <div className="flex items-center space-x-4 text-xs">
+                      <span>Total logins: {user.loginHistory.length}</span>
+                      <span>Failed: {user.loginHistory.filter(l => !l.success).length}</span>
+                      <span>Unique IPs: {new Set(user.loginHistory.map(l => l.ipAddress)).size}</span>
+                    </div>
                   </div>
                 </div>
                 
                 <div className="flex space-x-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => viewLoginHistory(user)}
+                  >
+                    <Eye className="h-4 w-4 mr-1" />
+                    Login History
+                  </Button>
+                  
                   <Button
                     variant="outline"
                     size="sm"
@@ -229,6 +286,90 @@ export function UserManagement() {
           </Card>
         ))}
       </div>
+      
+      {/* Login History Dialog */}
+      <Dialog open={isLoginHistoryOpen} onOpenChange={setIsLoginHistoryOpen}>
+        <DialogContent className="sm:max-w-[700px] max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center space-x-2">
+              <Globe className="h-5 w-5" />
+              <span>Login History: {selectedUser?.username}</span>
+            </DialogTitle>
+            <DialogDescription>
+              Complete login history with IP addresses and unusual activity detection
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedUser && (
+            <div className="space-y-4">
+              {/* Login Statistics */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-muted rounded-lg">
+                <div className="text-center">
+                  <div className="text-lg font-bold">{selectedUser.loginHistory.length}</div>
+                  <div className="text-xs text-muted-foreground">Total Logins</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-lg font-bold text-red-600">
+                    {selectedUser.loginHistory.filter(l => !l.success).length}
+                  </div>
+                  <div className="text-xs text-muted-foreground">Failed</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-lg font-bold text-yellow-600">
+                    {selectedUser.loginHistory.filter(l => l.isUnusual && l.success).length}
+                  </div>
+                  <div className="text-xs text-muted-foreground">Unusual</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-lg font-bold">
+                    {new Set(selectedUser.loginHistory.map(l => l.ipAddress)).size}
+                  </div>
+                  <div className="text-xs text-muted-foreground">Unique IPs</div>
+                </div>
+              </div>
+              
+              {/* Login History List */}
+              <div className="space-y-2 max-h-96 overflow-y-auto">
+                {selectedUser.loginHistory.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <Globe className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                    <p>No login history available</p>
+                  </div>
+                ) : (
+                  selectedUser.loginHistory.map((login, index) => (
+                    <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
+                      <div className="flex items-center space-x-3">
+                        <div className="flex items-center space-x-2">
+                          {getLoginStatusIcon(login)}
+                          <Badge variant={getLoginStatusColor(login) as any} className="text-xs">
+                            {login.success ? 'Success' : 'Failed'}
+                          </Badge>
+                          {login.isUnusual && login.success && (
+                            <Badge variant="outline" className="text-xs">
+                              Unusual Location
+                            </Badge>
+                          )}
+                        </div>
+                        <div>
+                          <div className="font-mono text-sm">{login.ipAddress}</div>
+                          <div className="text-xs text-muted-foreground">
+                            {formatDate(login.timestamp)}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-xs text-muted-foreground max-w-48 truncate">
+                          {login.userAgent}
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

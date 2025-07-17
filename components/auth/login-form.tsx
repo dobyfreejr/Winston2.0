@@ -30,7 +30,7 @@ export function LoginForm({ onLogin }: { onLogin?: () => void }) {
     try {
       // Get user's IP address (in production, this would come from request headers)
       const ipAddress = await getUserIP()
-      const user = auth.login(username, password, ipAddress)
+      const user = auth.login(username, password, ipAddress, navigator.userAgent)
       if (user) {
         activityTracker.trackActivity('login', { page: 'login' })
         logger.info('security', `User login: ${username}`, { 
@@ -84,8 +84,16 @@ export function LoginForm({ onLogin }: { onLogin?: () => void }) {
       const ipAddress = await getUserIP()
       const orgAdmin = auth.initializeOrgAdmin(username, password)
       if (orgAdmin) {
-        // Set IP for org admin
-        orgAdmin.lastLoginIp = ipAddress
+        // Add initial login record for org admin
+        const initialLogin = {
+          timestamp: new Date(),
+          ipAddress,
+          userAgent: navigator.userAgent,
+          success: true,
+          isUnusual: false
+        }
+        orgAdmin.loginHistory = [initialLogin]
+        
         activityTracker.trackActivity('login', { page: 'login' })
         logger.info('security', `Organization admin created: ${username}`, { 
           userId: orgAdmin.id, 
