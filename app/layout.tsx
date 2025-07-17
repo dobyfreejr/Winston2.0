@@ -6,7 +6,7 @@ import { AuthWrapper } from '@/components/auth/auth-wrapper';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'SOC Analysis Platform',
+  title: 'Winston - Security Operations Platform',
   description: 'Comprehensive threat intelligence and security analysis platform',
 };
 

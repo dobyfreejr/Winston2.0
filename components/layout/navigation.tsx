@@ -63,7 +63,7 @@ export function Navigation() {
         <div className="flex grow flex-col gap-y-5 overflow-y-auto border-r border-border bg-card px-6 pb-4">
           <div className="flex h-16 shrink-0 items-center">
             <Shield className="h-8 w-8 text-blue-600" />
-            <span className="ml-2 text-xl font-bold text-foreground">SOC Platform</span>
+            <span className="ml-2 text-xl font-bold text-foreground">Winston</span>
           </div>
           <nav className="flex flex-1 flex-col">
             <ul role="list" className="flex flex-1 flex-col gap-y-7">

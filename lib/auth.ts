@@ -1,6 +1,7 @@
 export interface User {
   id: string
   username: string
+  password: string // Added password field
   role: 'org_admin' | 'admin' | 'analyst'
   createdAt: Date
   lastLogin?: Date
@@ -14,11 +15,12 @@ let currentUser: User | null = null
 
 export const auth = {
   // Initialize with org admin if no users exist
-  initializeOrgAdmin: (username: string) => {
+  initializeOrgAdmin: (username: string, password: string) => {
     if (users.length === 0) {
       const orgAdmin: User = {
         id: 'org-admin-1',
         username,
+        password, // Store password (in production, hash this!)
         role: 'org_admin',
         createdAt: new Date(),
         createdBy: 'system',
@@ -31,9 +33,9 @@ export const auth = {
     return null
   },
 
-  // Login user
-  login: (username: string) => {
-    const user = users.find(u => u.username === username && u.isActive)
+  // Login user with password
+  login: (username: string, password: string) => {
+    const user = users.find(u => u.username === username && u.password === password && u.isActive)
     if (user) {
       user.lastLogin = new Date()
       currentUser = user
@@ -116,9 +118,4 @@ export const auth = {
   logout: () => {
     currentUser = null
   }
-}
-
-// Initialize with default org admin if no users exist
-if (typeof window === 'undefined' && users.length === 0) {
-  auth.initializeOrgAdmin('orgadmin')
 }

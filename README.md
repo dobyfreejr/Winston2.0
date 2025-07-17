@@ -1,6 +1,6 @@
-# Production SOC Analysis Platform
+# Winston - Security Operations Platform
 
-A comprehensive Security Operations Center (SOC) platform for threat intelligence analysis, case management, and security monitoring.
+Winston is a comprehensive Security Operations Center (SOC) platform for threat intelligence analysis, case management, and security monitoring.
 
 ## 🚀 **Getting Started**
 
@@ -193,4 +193,4 @@ Add user authentication:
 4. **Regular Analysis**: Build up your threat intelligence database
 5. **Team Workflow**: Assign cases and track progress
 
-This is a **production-ready SOC platform** with API-driven network analysis - send your network data via API and see it visualized in real-time on the Network Analysis page!
+This is **Winston** - a production-ready SOC platform with API-driven network analysis. Send your network data via API and see it visualized in real-time!

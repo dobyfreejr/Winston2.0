@@ -1,7 +1,5 @@
 import { StatsOverview } from '@/components/dashboard/stats-overview'
 import { RecentActivity } from '@/components/dashboard/recent-activity'
-import { TeamActivity } from '@/components/dashboard/team-activity'
-import { RecentThreats } from '@/components/dashboard/recent-threats'
 import { IndicatorLookup } from '@/components/threat-analysis/indicator-lookup'
 import { auth } from '@/lib/auth'
 
@@ -12,26 +10,17 @@ export default function Dashboard() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">SOC Dashboard</h1>
+        <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
         <p className="text-muted-foreground">
-          Welcome back, {currentUser.username} • Monitor threats, analyze indicators, and manage security operations
+          Welcome back, {currentUser.username} • Security operations center overview
         </p>
       </div>
 
       <StatsOverview />
 
-      <div className="grid gap-8 lg:grid-cols-2">
+      <div className="grid gap-8 lg:grid-cols-3">
         <div className="lg:col-span-2">
           <IndicatorLookup />
-        </div>
-        <div>
-          <RecentThreats />
-        </div>
-      </div>
-      
-      <div className="grid gap-8 lg:grid-cols-2">
-        <div>
-          <TeamActivity />
         </div>
         <div>
           <RecentActivity />

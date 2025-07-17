@@ -18,6 +18,7 @@ export function UserManagement() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
   const [newUser, setNewUser] = useState({
     username: '',
+    password: '',
     role: 'analyst' as User['role']
   })
 
@@ -27,17 +28,23 @@ export function UserManagement() {
   }, [])
 
   const handleCreateUser = () => {
-    if (!newUser.username.trim() || !currentUser) return
+    if (!newUser.username.trim() || !newUser.password.trim() || !currentUser) return
+
+    if (newUser.password.length < 6) {
+      console.error('Password must be at least 6 characters')
+      return
+    }
 
     try {
       const createdUser = auth.createUser({
         username: newUser.username,
+        password: newUser.password,
         role: newUser.role,
         isActive: true
       }, currentUser.id)
 
       setUsers(auth.getUsers())
-      setNewUser({ username: '', role: 'analyst' })
+      setNewUser({ username: '', password: '', role: 'analyst' })
       setIsCreateDialogOpen(false)
     } catch (error) {
       console.error('Failed to create user:', error)
@@ -130,6 +137,17 @@ export function UserManagement() {
                     value={newUser.username}
                     onChange={(e) => setNewUser({...newUser, username: e.target.value})}
                     placeholder="Enter username..."
+                  />
+                </div>
+                
+                <div>
+                  <Label htmlFor="password">Password</Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    value={newUser.password}
+                    onChange={(e) => setNewUser({...newUser, password: e.target.value})}
+                    placeholder="Enter password..."
                   />
                 </div>
                 
