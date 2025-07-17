@@ -200,6 +200,7 @@ export function UserManagement() {
                   <div className="text-sm text-muted-foreground">
                     Created: {formatDate(user.createdAt)}
                     {user.lastLogin && ` • Last login: ${formatDate(user.lastLogin)}`}
+                    {user.lastLoginIp && ` • IP: ${user.lastLoginIp}`}
                   </div>
                 </div>
                 

@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label'
 import { Shield } from 'lucide-react'
 import { auth } from '@/lib/auth'
 import { activityTracker } from '@/lib/activity-tracker'
+import { logger } from '@/lib/logger'
 
 export function LoginForm({ onLogin }: { onLogin?: () => void }) {
   const router = useRouter()
