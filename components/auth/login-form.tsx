@@ -10,7 +10,7 @@ import { Shield } from 'lucide-react'
 import { auth } from '@/lib/auth'
 import { activityTracker } from '@/lib/activity-tracker'
 
-export function LoginForm() {
+export function LoginForm({ onLogin }: { onLogin?: () => void }) {
   const router = useRouter()
   const [username, setUsername] = useState('')
   const [error, setError] = useState('')
@@ -25,8 +25,9 @@ export function LoginForm() {
       const user = auth.login(username)
       if (user) {
         activityTracker.trackActivity('login', { page: 'login' })
-        router.push('/')
-        router.refresh()
+        // Trigger auth change event
+        window.dispatchEvent(new Event('auth-change'))
+        onLogin?.()
       } else {
         setError('Invalid username or user is inactive')
       }
@@ -46,8 +47,9 @@ export function LoginForm() {
     const orgAdmin = auth.initializeOrgAdmin(username)
     if (orgAdmin) {
       activityTracker.trackActivity('login', { page: 'login' })
-      router.push('/')
-      router.refresh()
+      // Trigger auth change event
+      window.dispatchEvent(new Event('auth-change'))
+      onLogin?.()
     } else {
       setError('Organization already initialized')
     }

@@ -1,9 +1,7 @@
 import './globals.css';
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
-import { LoginForm } from '@/components/auth/login-form';
-import { Navigation } from '@/components/layout/navigation';
-import { auth } from '@/lib/auth';
+import { AuthWrapper } from '@/components/auth/auth-wrapper';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -17,27 +15,12 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const currentUser = auth.getCurrentUser();
-  
-  if (!currentUser) {
-    return (
-      <html lang="en">
-        <body className={inter.className}>
-          <LoginForm />
-        </body>
-      </html>
-    );
-  }
-
   return (
     <html lang="en">
       <body className={inter.className}>
-        <Navigation />
-        <main className="pl-72">
-          <div className="px-4 py-8 sm:px-6 lg:px-8">
-            {children}
-          </div>
-        </main>
+        <AuthWrapper>
+          {children}
+        </AuthWrapper>
       </body>
     </html>
   );

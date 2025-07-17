@@ -6,18 +6,8 @@ import { IndicatorLookup } from '@/components/threat-analysis/indicator-lookup'
 import { auth } from '@/lib/auth'
 
 export default function Dashboard() {
-  const currentUser = auth.getCurrentUser()
-  
-  if (!currentUser) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold mb-4">Authentication Required</h1>
-          <p className="text-muted-foreground">Please log in to access the SOC platform</p>
-        </div>
-      </div>
-    )
-  }
+  // Auth is now handled by AuthWrapper, so we can assume user is logged in
+  const currentUser = auth.getCurrentUser() || { username: 'User' }
 
   return (
     <div className="space-y-8">
