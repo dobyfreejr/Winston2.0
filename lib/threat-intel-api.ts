@@ -13,15 +13,23 @@ export async function analyzeWithVirusTotal(indicator: string, type: 'ip' | 'dom
     })
 
     if (!response.ok) {
-      throw new Error(`VirusTotal API error: ${response.status}`)
+      const errorData = await response.json().catch(() => ({}))
+      
+      if (errorData.configured === false) {
+        console.warn('VirusTotal API not configured, using mock data')
+        logger.warn('api', `VirusTotal API not configured for ${indicator}, falling back to mock data`)
+        return getMockVirusTotalResponse(indicator, type)
+      }
+      
+      throw new Error(`VirusTotal API error: ${response.status} - ${errorData.message || 'Unknown error'}`)
     }
 
     const data = await response.json()
     logger.info('api', `VirusTotal analysis completed for ${type}: ${indicator}`)
     return data
   } catch (error) {
-    logger.error('api', `VirusTotal API error for ${indicator}`, error)
-    // Return mock data when API is not configured or fails
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    logger.error('api', `VirusTotal API error for ${indicator}: ${errorMessage}`, error)
     logger.warn('api', `Falling back to mock data for VirusTotal: ${indicator}`)
     return getMockVirusTotalResponse(indicator, type)
   }

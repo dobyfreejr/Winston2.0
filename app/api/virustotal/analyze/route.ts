@@ -3,9 +3,17 @@ import { NextRequest, NextResponse } from 'next/server'
 const VIRUSTOTAL_API_KEY = process.env.VIRUSTOTAL_API_KEY
 
 export async function POST(request: NextRequest) {
-  if (!VIRUSTOTAL_API_KEY || VIRUSTOTAL_API_KEY === 'your_virustotal_api_key_here' || VIRUSTOTAL_API_KEY.trim() === '') {
+  if (!VIRUSTOTAL_API_KEY || 
+      VIRUSTOTAL_API_KEY === 'your_virustotal_api_key_here' || 
+      VIRUSTOTAL_API_KEY.trim() === '' ||
+      VIRUSTOTAL_API_KEY === 'undefined' ||
+      VIRUSTOTAL_API_KEY === 'null') {
     return NextResponse.json(
-      { error: 'VirusTotal API key not configured. Please add VIRUSTOTAL_API_KEY to your .env.local file.' },
+      { 
+        error: 'VirusTotal API key not configured', 
+        message: 'Please add your actual VirusTotal API key to .env.local and restart the server',
+        configured: false 
+      },
       { status: 500 }
     )
   }
@@ -45,6 +53,8 @@ export async function POST(request: NextRequest) {
         )
     }
 
+    console.log(`Making VirusTotal API request to: ${endpoint}`)
+    
     const response = await fetch(endpoint, {
       headers: {
         'X-Apikey': VIRUSTOTAL_API_KEY
@@ -52,15 +62,45 @@ export async function POST(request: NextRequest) {
     })
 
     if (!response.ok) {
-      throw new Error(`VirusTotal API error: ${response.status}`)
+      const errorText = await response.text()
+      console.error(`VirusTotal API error: ${response.status} - ${errorText}`)
+      
+      if (response.status === 401) {
+        return NextResponse.json(
+          { 
+            error: 'Invalid VirusTotal API key', 
+            message: 'Please check your API key in .env.local',
+            configured: false 
+          },
+          { status: 500 }
+        )
+      }
+      
+      if (response.status === 429) {
+        return NextResponse.json(
+          { 
+            error: 'VirusTotal API rate limit exceeded', 
+            message: 'Please wait before making another request',
+            configured: true 
+          },
+          { status: 429 }
+        )
+      }
+      
+      throw new Error(`VirusTotal API error: ${response.status} - ${errorText}`)
     }
 
     const data = await response.json()
+    console.log(`VirusTotal API success for ${type}: ${indicator}`)
     return NextResponse.json(data)
   } catch (error) {
     console.error('VirusTotal API error:', error)
     return NextResponse.json(
-      { error: 'Failed to analyze with VirusTotal' },
+      { 
+        error: 'Failed to analyze with VirusTotal', 
+        message: error instanceof Error ? error.message : 'Unknown error',
+        configured: true 
+      },
       { status: 500 }
     )
   }
