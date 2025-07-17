@@ -5,6 +5,7 @@ export interface User {
   role: 'org_admin' | 'admin' | 'analyst'
   createdAt: Date
   lastLogin?: Date
+  lastLoginIp?: string
   createdBy: string
   isActive: boolean
 }
@@ -34,10 +35,11 @@ export const auth = {
   },
 
   // Login user with password
-  login: (username: string, password: string) => {
+  login: (username: string, password: string, ipAddress?: string) => {
     const user = users.find(u => u.username === username && u.password === password && u.isActive)
     if (user) {
       user.lastLogin = new Date()
+      user.lastLoginIp = ipAddress
       currentUser = user
       return user
     }

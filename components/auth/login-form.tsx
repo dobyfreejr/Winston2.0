@@ -27,9 +27,16 @@ export function LoginForm({ onLogin }: { onLogin?: () => void }) {
     setError('')
 
     try {
-      const user = auth.login(username, password)
+      // Get user's IP address (in production, this would come from request headers)
+      const ipAddress = await getUserIP()
+      const user = auth.login(username, password, ipAddress)
       if (user) {
         activityTracker.trackActivity('login', { page: 'login' })
+        logger.info('security', `User login: ${username}`, { 
+          userId: user.id, 
+          ipAddress,
+          userAgent: navigator.userAgent 
+        })
         // Trigger auth change event
         window.dispatchEvent(new Event('auth-change'))
         onLogin?.()
@@ -73,9 +80,17 @@ export function LoginForm({ onLogin }: { onLogin?: () => void }) {
     }
 
     try {
+      const ipAddress = await getUserIP()
       const orgAdmin = auth.initializeOrgAdmin(username, password)
       if (orgAdmin) {
+        // Set IP for org admin
+        orgAdmin.lastLoginIp = ipAddress
         activityTracker.trackActivity('login', { page: 'login' })
+        logger.info('security', `Organization admin created: ${username}`, { 
+          userId: orgAdmin.id, 
+          ipAddress,
+          userAgent: navigator.userAgent 
+        })
         // Trigger auth change event
         window.dispatchEvent(new Event('auth-change'))
         onLogin?.()
@@ -86,6 +101,17 @@ export function LoginForm({ onLogin }: { onLogin?: () => void }) {
       setError('Failed to create organization admin')
     } finally {
       setLoading(false)
+    }
+  }
+
+  // Get user's IP address
+  const getUserIP = async (): Promise<string> => {
+    try {
+      const response = await fetch('/api/user/ip')
+      const data = await response.json()
+      return data.ip || 'unknown'
+    } catch (error) {
+      return 'unknown'
     }
   }
 
