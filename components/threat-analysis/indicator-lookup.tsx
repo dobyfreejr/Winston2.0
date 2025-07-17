@@ -55,40 +55,94 @@ export function IndicatorLookup() {
     return 'domain'
   }
 
+  const isValidIndicatorFormat = (value: string, type: 'ip' | 'domain' | 'hash' | 'url'): boolean => {
+    const cleanValue = value.trim()
+    
+    switch (type) {
+      case 'ip':
+        const ipRegex = /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/
+        return ipRegex.test(cleanValue)
+      
+      case 'domain':
+        const domainRegex = /^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/
+        return domainRegex.test(cleanValue) && cleanValue.length <= 253 && !cleanValue.includes('..')
+      
+      case 'hash':
+        const hashRegex = /^[a-fA-F0-9]{32}$|^[a-fA-F0-9]{40}$|^[a-fA-F0-9]{64}$/
+        return hashRegex.test(cleanValue)
+      
+      case 'url':
+        try {
+          new URL(cleanValue)
+          return cleanValue.startsWith('http://') || cleanValue.startsWith('https://')
+        } catch {
+          return false
+        }
+      
+      default:
+        return false
+    }
+  }
+
+  const [validationError, setValidationError] = useState<string>('')
+
   const handleAnalyze = async () => {
     if (!indicator.trim()) return
     
+    const cleanIndicator = indicator.trim()
+    const type = detectIndicatorType(cleanIndicator)
+    
+    // Validate indicator format
+    if (!isValidIndicatorFormat(cleanIndicator, type)) {
+      let errorMessage = ''
+      switch (type) {
+        case 'ip':
+          errorMessage = 'Invalid IP address format. Please enter a valid IPv4 address (e.g., 192.168.1.1)'
+          break
+        case 'domain':
+          errorMessage = 'Invalid domain format. Please enter a valid domain name (e.g., example.com)'
+          break
+        case 'hash':
+          errorMessage = 'Invalid hash format. Please enter a valid MD5 (32 chars), SHA1 (40 chars), or SHA256 (64 chars) hash'
+          break
+        case 'url':
+          errorMessage = 'Invalid URL format. Please enter a valid HTTP/HTTPS URL'
+          break
+      }
+      setValidationError(errorMessage)
+      return
+    }
+    
+    setValidationError('')
     setLoading(true)
     setResults({})
     
     try {
-      const type = detectIndicatorType(indicator)
-      
       // Add to analysis requests
-      db.addAnalysisRequest(indicator)
+      db.addAnalysisRequest(cleanIndicator)
       
       // Track user activity
       activityTracker.trackActivity('analyze', {
-        indicator,
+        indicator: cleanIndicator,
         indicatorType: type
       })
       
       // Run all applicable analyses in parallel
       const promises: Promise<any>[] = [
-        analyzeWithVirusTotal(indicator, type),
-        enrichThreatIntelligence(indicator, type)
+        analyzeWithVirusTotal(cleanIndicator, type),
+        enrichThreatIntelligence(cleanIndicator, type)
       ]
       
       if (type === 'ip') {
-        promises.push(getIPGeolocation(indicator))
+        promises.push(getIPGeolocation(cleanIndicator))
       }
       
       if (type === 'domain') {
-        promises.push(getDomainInfo(indicator))
+        promises.push(getDomainInfo(cleanIndicator))
       }
       
       if (type === 'hash') {
-        promises.push(searchMalwareBazaar(indicator))
+        promises.push(searchMalwareBazaar(cleanIndicator))
       }
       
       const [virusTotal, threatIntel, ...additionalResults] = await Promise.all(promises)
@@ -116,7 +170,7 @@ export function IndicatorLookup() {
       
       // Save to search history
       db.addSearchHistory({
-        indicator,
+        indicator: cleanIndicator,
         type,
         timestamp: new Date(),
         results: newResults,
@@ -127,7 +181,7 @@ export function IndicatorLookup() {
       // Add threat detection if high risk
       if (threatLevel === 'high') {
         db.addThreatDetection({
-          indicator,
+          indicator: cleanIndicator,
           type,
           severity: 'high',
           description: `High-risk ${type} detected with reputation score ${threatIntel?.reputation_score}`,
@@ -139,7 +193,7 @@ export function IndicatorLookup() {
         // Add to recent threats
         activityTracker.addRecentThreat({
           type: type === 'hash' ? 'malware' : type === 'ip' ? 'malicious_ip' : 'file_upload',
-          indicator,
+          indicator: cleanIndicator,
           threatLevel: 'high',
           detectedBy: 'Threat Intelligence',
           timestamp: new Date(),
@@ -149,6 +203,7 @@ export function IndicatorLookup() {
       
     } catch (error) {
       console.error('Analysis failed:', error)
+      setValidationError('Analysis failed. Please try again or check your input format.')
     } finally {
       setLoading(false)
     }
@@ -219,6 +274,11 @@ export function IndicatorLookup() {
               Analyze
             </Button>
           </div>
+          {validationError && (
+            <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-md">
+              <p className="text-sm text-red-600">{validationError}</p>
+            </div>
+          )}
         </CardContent>
       </Card>
 
