@@ -362,18 +362,6 @@ export default function CasesPage() {
                   </div>
                 </div>
                 
-                <div>
-                  <Label htmlFor="timeSpent">Initial Time Spent (hours)</Label>
-                  <Input
-                    id="timeSpent"
-                    type="number"
-                    min="0"
-                    step="0.5"
-                    value={newCase.timeSpent}
-                    onChange={(e) => setNewCase({...newCase, timeSpent: parseFloat(e.target.value) || 0})}
-                    placeholder="0"
-                  />
-                </div>
               </CardHeader>
               
               <CardContent>

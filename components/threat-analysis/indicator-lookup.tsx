@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { useRouter } from 'next/navigation'
 import { Search, Loader2, AlertTriangle, Shield, Globe, Hash, Link, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -21,6 +22,7 @@ import { db } from '@/lib/database'
 
 export function IndicatorLookup() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [indicator, setIndicator] = useState('')
   const [loading, setLoading] = useState(false)
   const [results, setResults] = useState<{
@@ -30,6 +32,16 @@ export function IndicatorLookup() {
     malwareSamples?: MalwareSample[]
     threatIntel?: ThreatIntelligence
   }>({})
+
+  // Auto-populate indicator from URL params
+  useState(() => {
+    const urlIndicator = searchParams.get('indicator')
+    if (urlIndicator) {
+      setIndicator(urlIndicator)
+      // Auto-analyze if indicator is provided
+      setTimeout(() => handleAnalyze(), 100)
+    }
+  }, [searchParams])
 
   const detectIndicatorType = (value: string): 'ip' | 'domain' | 'hash' | 'url' => {
     const ipRegex = /^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/
@@ -194,16 +206,26 @@ export function IndicatorLookup() {
       </Card>
 
       {Object.keys(results).length > 0 && (
-        <Tabs defaultValue="overview" className="w-full">
+        <Tabs defaultValue="overview" className="w-full" id="results-tabs">
           <TabsList className="grid w-full grid-cols-5">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="virustotal">VirusTotal</TabsTrigger>
-            <TabsTrigger value="geolocation">Geolocation</TabsTrigger>
-            <TabsTrigger value="domain">Domain Info</TabsTrigger>
-            <TabsTrigger value="malware">Malware</TabsTrigger>
+            <TabsTrigger value="overview" onClick={() => document.getElementById('overview-section')?.scrollIntoView({ behavior: 'smooth' })}>
+              Overview
+            </TabsTrigger>
+            <TabsTrigger value="virustotal" onClick={() => document.getElementById('virustotal-section')?.scrollIntoView({ behavior: 'smooth' })}>
+              VirusTotal
+            </TabsTrigger>
+            <TabsTrigger value="geolocation" onClick={() => document.getElementById('geolocation-section')?.scrollIntoView({ behavior: 'smooth' })}>
+              Geolocation
+            </TabsTrigger>
+            <TabsTrigger value="domain" onClick={() => document.getElementById('domain-section')?.scrollIntoView({ behavior: 'smooth' })}>
+              Domain Info
+            </TabsTrigger>
+            <TabsTrigger value="malware" onClick={() => document.getElementById('malware-section')?.scrollIntoView({ behavior: 'smooth' })}>
+              Malware
+            </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="overview" className="space-y-4">
+          <TabsContent value="overview" className="space-y-4" id="overview-section">
             <Card>
               <CardHeader>
                 <div className="flex items-center justify-between">
@@ -264,7 +286,7 @@ export function IndicatorLookup() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="virustotal" className="space-y-4">
+          <TabsContent value="virustotal" className="space-y-4" id="virustotal-section">
             {results.virusTotal && (
               <Card>
                 <CardHeader>
@@ -327,7 +349,7 @@ export function IndicatorLookup() {
             )}
           </TabsContent>
 
-          <TabsContent value="geolocation" className="space-y-4">
+          <TabsContent value="geolocation" className="space-y-4" id="geolocation-section">
             {results.ipGeo && (
               <Card>
                 <CardHeader>
@@ -368,7 +390,7 @@ export function IndicatorLookup() {
             )}
           </TabsContent>
 
-          <TabsContent value="domain" className="space-y-4">
+          <TabsContent value="domain" className="space-y-4" id="domain-section">
             {results.domainInfo && (
               <Card>
                 <CardHeader>
@@ -414,7 +436,7 @@ export function IndicatorLookup() {
             )}
           </TabsContent>
 
-          <TabsContent value="malware" className="space-y-4">
+          <TabsContent value="malware" className="space-y-4" id="malware-section">
             {results.malwareSamples && results.malwareSamples.length > 0 ? (
               results.malwareSamples.map((sample) => (
                 <Card key={sample.sha256}>

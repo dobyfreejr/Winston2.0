@@ -227,7 +227,7 @@ export default function IndicatorsPage() {
       </div>
 
       {/* Indicators List */}
-      <div className="space-y-4">
+      <div className="space-y-4" id="indicators-list">
         {filteredIndicators.length === 0 ? (
           <Card>
             <CardContent className="text-center py-12">
@@ -298,7 +298,7 @@ export default function IndicatorsPage() {
                 </div>
                 
                 {indicator.results?.virusTotal && (
-                  <div className="mt-4 p-3 bg-muted rounded-lg">
+                  <div className="mt-4 p-3 bg-muted rounded-lg" id={`virustotal-${indicator.id}`}>
                     <h4 className="font-medium mb-2">VirusTotal Results</h4>
                     <div className="grid grid-cols-4 gap-4 text-sm">
                       <div className="text-center">
@@ -325,6 +325,20 @@ export default function IndicatorsPage() {
                         </div>
                         <div className="text-xs text-muted-foreground">Undetected</div>
                       </div>
+                    </div>
+                    
+                    {/* Quick navigation to detailed analysis */}
+                    <div className="mt-3 pt-3 border-t">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => {
+                          // Navigate to analysis page with this indicator
+                          window.location.href = `/analysis?indicator=${encodeURIComponent(indicator.indicator)}`
+                        }}
+                      >
+                        View Full Analysis
+                      </Button>
                     </div>
                   </div>
                 )}
