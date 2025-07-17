@@ -14,12 +14,14 @@ import {
   X,
   AlertTriangle,
   Database,
-  Globe
+  Globe,
+  FileText
 } from 'lucide-react'
 
 const navigation = [
   { name: 'Dashboard', href: '/', icon: BarChart3 },
   { name: 'Threat Analysis', href: '/analysis', icon: Search },
+  { name: 'Cases', href: '/cases', icon: FileText },
   { name: 'Indicators', href: '/indicators', icon: AlertTriangle },
   { name: 'Intelligence Feeds', href: '/feeds', icon: Database },
   { name: 'Network Analysis', href: '/network', icon: Globe },

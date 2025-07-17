@@ -1,63 +1,40 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { AlertTriangle, Shield, Globe, Hash } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { AlertTriangle, Shield, Globe, Hash, Plus, Eye } from 'lucide-react'
 import { formatDate } from '@/lib/utils'
+import { db } from '@/lib/database'
 
 export function RecentActivity() {
-  const activities = [
-    {
-      id: 1,
-      type: 'threat_detected',
-      indicator: '185.220.101.42',
-      indicatorType: 'ip',
-      severity: 'high',
-      description: 'Malicious IP detected in network traffic',
-      timestamp: new Date('2024-01-20T12:45:00Z'),
-      source: 'VirusTotal'
-    },
-    {
-      id: 2,
-      type: 'analysis_complete',
-      indicator: 'suspicious-domain.tk',
-      indicatorType: 'domain',
-      severity: 'medium',
-      description: 'Domain analysis completed - suspicious activity detected',
-      timestamp: new Date('2024-01-20T12:15:00Z'),
-      source: 'Domain Intelligence'
-    },
-    {
-      id: 3,
-      type: 'clean_verified',
-      indicator: 'a1b2c3d4e5f6...',
-      indicatorType: 'hash',
-      severity: 'low',
-      description: 'File hash verified as clean',
-      timestamp: new Date('2024-01-20T11:00:00Z'),
-      source: 'Malware Bazaar'
-    },
-    {
-      id: 4,
-      type: 'threat_detected',
-      indicator: 'http://malware-site.com/payload',
-      indicatorType: 'url',
-      severity: 'high',
-      description: 'Malicious URL blocked',
-      timestamp: new Date('2024-01-20T10:00:00Z'),
-      source: 'URL Scanner'
-    },
-    {
-      id: 5,
-      type: 'analysis_complete',
-      indicator: '8.8.8.8',
-      indicatorType: 'ip',
-      severity: 'low',
-      description: 'IP geolocation analysis completed',
-      timestamp: new Date('2024-01-20T09:00:00Z'),
-      source: 'IP Intelligence'
+  const [activities, setActivities] = useState<any[]>([])
+
+  useEffect(() => {
+    const updateActivities = () => {
+      const searchHistory = db.getSearchHistory().slice(0, 10)
+      const formattedActivities = searchHistory.map(search => ({
+        id: search.id,
+        type: search.threatLevel === 'high' ? 'threat_detected' : 'analysis_complete',
+        indicator: search.indicator,
+        indicatorType: search.type,
+        severity: search.threatLevel,
+        description: search.threatLevel === 'high' 
+          ? `High-risk ${search.type} detected` 
+          : `${search.type.toUpperCase()} analysis completed`,
+        timestamp: search.timestamp,
+        source: 'Threat Intelligence',
+        searchId: search.id
+      }))
+      setActivities(formattedActivities)
     }
-  ]
+    
+    updateActivities()
+    const interval = setInterval(updateActivities, 10000) // Update every 10 seconds
+    
+    return () => clearInterval(interval)
+  }, [])
 
   const getActivityIcon = (type: string, severity: string) => {
     if (type === 'threat_detected') {
@@ -88,6 +65,46 @@ export function RecentActivity() {
     }
   }
 
+  const createCaseFromActivity = (activity: any) => {
+    const newCase = db.createCase({
+      title: `Investigation: ${activity.indicator}`,
+      description: `Automated case created from ${activity.severity} severity detection`,
+      priority: activity.severity === 'high' ? 'critical' : activity.severity === 'medium' ? 'high' : 'medium',
+      status: 'open',
+      indicators: [activity.indicator],
+      tags: [activity.indicatorType, activity.severity]
+    })
+    
+    // Update threat detection with case ID
+    const threats = db.getThreatDetections()
+    const threat = threats.find(t => t.indicator === activity.indicator)
+    if (threat) {
+      db.updateThreatDetection(threat.id, { caseId: newCase.id, status: 'investigating' })
+    }
+    
+    alert(`Case ${newCase.id} created for ${activity.indicator}`)
+  }
+
+  if (activities.length === 0) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Recent Activity</CardTitle>
+          <CardDescription>
+            Your analysis history will appear here
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-8 text-muted-foreground">
+            <Shield className="h-12 w-12 mx-auto mb-4 opacity-50" />
+            <p>No recent activity</p>
+            <p className="text-sm">Start analyzing indicators to see activity here</p>
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
+
   return (
     <Card>
       <CardHeader>
@@ -104,13 +121,26 @@ export function RecentActivity() {
                 {getActivityIcon(activity.type, activity.severity)}
               </div>
               <div className="flex-1 space-y-1">
-                <div className="flex items-center space-x-2">
-                  <p className="text-sm font-medium leading-none">
-                    {activity.description}
-                  </p>
-                  <Badge variant={getSeverityColor(activity.severity) as any} className="text-xs">
-                    {activity.severity}
-                  </Badge>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <p className="text-sm font-medium leading-none">
+                      {activity.description}
+                    </p>
+                    <Badge variant={getSeverityColor(activity.severity) as any} className="text-xs">
+                      {activity.severity}
+                    </Badge>
+                  </div>
+                  <div className="flex space-x-1">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => createCaseFromActivity(activity)}
+                      className="h-6 px-2 text-xs"
+                    >
+                      <Plus className="h-3 w-3 mr-1" />
+                      Case
+                    </Button>
+                  </div>
                 </div>
                 <div className="flex items-center space-x-2 text-xs text-muted-foreground">
                   {getIndicatorIcon(activity.indicatorType)}

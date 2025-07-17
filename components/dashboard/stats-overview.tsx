@@ -1,40 +1,60 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { AlertTriangle, Shield, TrendingUp, Activity } from 'lucide-react'
+import { db } from '@/lib/database'
 
 export function StatsOverview() {
-  const stats = [
+  const [stats, setStats] = useState({
+    threatsDetected: 0,
+    cleanIndicators: 0,
+    analysisRequests: 0,
+    activeInvestigations: 0
+  })
+
+  useEffect(() => {
+    const updateStats = () => {
+      setStats(db.getStats())
+    }
+    
+    updateStats()
+    const interval = setInterval(updateStats, 30000) // Update every 30 seconds
+    
+    return () => clearInterval(interval)
+  }, [])
+
+  const statsConfig = [
     {
       title: "Threats Detected",
-      value: "1,247",
-      change: "+12%",
+      value: stats.threatsDetected.toString(),
+      change: stats.threatsDetected > 0 ? `+${stats.threatsDetected}` : "0",
       changeType: "increase" as const,
       icon: AlertTriangle,
       description: "Last 24 hours"
     },
     {
       title: "Clean Indicators",
-      value: "8,932",
-      change: "+5%",
+      value: stats.cleanIndicators.toString(),
+      change: stats.cleanIndicators > 0 ? `+${stats.cleanIndicators}` : "0",
       changeType: "increase" as const,
       icon: Shield,
       description: "Verified safe"
     },
     {
       title: "Analysis Requests",
-      value: "15,678",
-      change: "+23%",
+      value: stats.analysisRequests.toString(),
+      change: stats.analysisRequests > 0 ? `+${stats.analysisRequests}` : "0",
       changeType: "increase" as const,
       icon: TrendingUp,
       description: "This week"
     },
     {
       title: "Active Investigations",
-      value: "42",
-      change: "-8%",
-      changeType: "decrease" as const,
+      value: stats.activeInvestigations.toString(),
+      change: stats.activeInvestigations > 0 ? `${stats.activeInvestigations}` : "0",
+      changeType: "neutral" as const,
       icon: Activity,
       description: "Currently ongoing"
     }
@@ -42,7 +62,7 @@ export function StatsOverview() {
 
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-      {stats.map((stat) => {
+      {statsConfig.map((stat) => {
         const Icon = stat.icon
         return (
           <Card key={stat.title}>
@@ -55,12 +75,14 @@ export function StatsOverview() {
             <CardContent>
               <div className="text-2xl font-bold">{stat.value}</div>
               <div className="flex items-center space-x-2 text-xs text-muted-foreground">
-                <Badge 
-                  variant={stat.changeType === 'increase' ? 'default' : 'secondary'}
-                  className="text-xs"
-                >
-                  {stat.change}
-                </Badge>
+                {stat.changeType !== 'neutral' && (
+                  <Badge 
+                    variant={stat.changeType === 'increase' ? 'default' : 'secondary'}
+                    className="text-xs"
+                  >
+                    {stat.change}
+                  </Badge>
+                )}
                 <span>{stat.description}</span>
               </div>
             </CardContent>

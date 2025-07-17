@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Search, Loader2, AlertTriangle, Shield, Globe, Hash, Link } from 'lucide-react'
+import { Search, Loader2, AlertTriangle, Shield, Globe, Hash, Link, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -16,6 +16,7 @@ import {
 } from '@/lib/threat-intel-api'
 import { VirusTotalResponse, IPGeolocation, DomainInfo, MalwareSample, ThreatIntelligence } from '@/types/threat-intel'
 import { formatDate, formatBytes } from '@/lib/utils'
+import { db } from '@/lib/database'
 
 export function IndicatorLookup() {
   const [indicator, setIndicator] = useState('')
@@ -47,6 +48,9 @@ export function IndicatorLookup() {
     
     try {
       const type = detectIndicatorType(indicator)
+      
+      // Add to analysis requests
+      db.addAnalysisRequest(indicator)
       
       // Run all applicable analyses in parallel
       const promises: Promise<any>[] = [
@@ -83,11 +87,58 @@ export function IndicatorLookup() {
       }
       
       setResults(newResults)
+      
+      // Determine threat level
+      let threatLevel: 'high' | 'medium' | 'low' = 'low'
+      if (threatIntel?.reputation_score < 30) threatLevel = 'high'
+      else if (threatIntel?.reputation_score < 70) threatLevel = 'medium'
+      
+      // Save to search history
+      db.addSearchHistory({
+        indicator,
+        type,
+        timestamp: new Date(),
+        results: newResults,
+        threatLevel,
+        status: 'analyzed'
+      })
+      
+      // Add threat detection if high risk
+      if (threatLevel === 'high') {
+        db.addThreatDetection({
+          indicator,
+          type,
+          severity: 'high',
+          description: `High-risk ${type} detected with reputation score ${threatIntel?.reputation_score}`,
+          timestamp: new Date(),
+          source: 'Threat Intelligence Analysis',
+          status: 'new'
+        })
+      }
+      
     } catch (error) {
       console.error('Analysis failed:', error)
     } finally {
       setLoading(false)
     }
+  }
+
+  const createCase = () => {
+    if (!indicator || !results.threatIntel) return
+    
+    const threatLevel = results.threatIntel.reputation_score < 30 ? 'critical' : 
+                       results.threatIntel.reputation_score < 70 ? 'high' : 'medium'
+    
+    const newCase = db.createCase({
+      title: `Investigation: ${indicator}`,
+      description: `Case created from threat analysis. Reputation score: ${results.threatIntel.reputation_score}/100`,
+      priority: threatLevel,
+      status: 'open',
+      indicators: [indicator],
+      tags: [detectIndicatorType(indicator), ...results.threatIntel.threat_types]
+    })
+    
+    alert(`Case ${newCase.id} created successfully!`)
   }
 
   const getThreatLevel = (stats: any) => {
@@ -151,10 +202,16 @@ export function IndicatorLookup() {
           <TabsContent value="overview" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  {getIndicatorIcon(detectIndicatorType(indicator))}
-                  Threat Intelligence Summary
-                </CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2">
+                    {getIndicatorIcon(detectIndicatorType(indicator))}
+                    Threat Intelligence Summary
+                  </CardTitle>
+                  <Button onClick={createCase} size="sm">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Create Case
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-center justify-between">
