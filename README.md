@@ -2,12 +2,53 @@
 
 Winston is a comprehensive Security Operations Center (SOC) platform for threat intelligence analysis, case management, and security monitoring.
 
-## 🚀 **Quick Start**
+## 🚀 **Super Quick Start**
+
+### **1. Install Node.js**
+- Download from: https://nodejs.org/ (get the LTS version)
+- Run the installer and restart your terminal
+
+### **2. Run Installation Script**
+
+#### **Windows (Choose One)**
+```powershell
+# Simple installer (recommended if you have issues)
+.\install-simple.ps1
+
+# Full installer with auto-install features
+.\install.ps1
+```
+
+#### **macOS/Linux**
+```bash
+chmod +x install.sh
+./install.sh
+```
+
+### **3. Add API Keys**
+Edit `.env.local` with your API keys from:
+- **VirusTotal**: https://www.virustotal.com/gui/my-apikey
+- **IPGeolocation**: https://ipgeolocation.io/
+- **WhoisXML**: https://whois.whoisxmlapi.com/
+
+### **4. Start & Use**
+```bash
+npm run dev
+```
+Open: http://localhost:3000
+
+---
+
+## 🔧 **Detailed Installation**
 
 ### **Automated Installation (Recommended)**
 
 #### **Windows (PowerShell)**
 ```powershell
+# If you have problems with the main installer, try the simple one:
+.\install-simple.ps1
+
+# Full installer with automatic Node.js installation:
 # Run PowerShell as Administrator
 Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 .\install.ps1
@@ -32,6 +73,13 @@ npm run dev
 ```
 
 Then open: **http://localhost:3000**
+
+### **If Installation Fails**
+
+1. **Make sure Node.js is installed**: https://nodejs.org/
+2. **Try the simple installer**: `.\install-simple.ps1` (Windows)
+3. **Manual installation**: See [INSTALL.md](INSTALL.md)
+4. **Check the quick start guide**: [QUICK-START.md](QUICK-START.md)
 
 ---
 

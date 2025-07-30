@@ -41,13 +41,29 @@ function Test-Administrator {
     return $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 }
 
+# Refresh environment variables
+function Update-Environment {
+    $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
+    # Also refresh current session
+    foreach($level in "Machine","User") {
+        [Environment]::GetEnvironmentVariables($level).GetEnumerator() | % {
+            if($_.Name -notlike "PATH") {
+                [Environment]::SetEnvironmentVariable($_.Name, $_.Value, "Process")
+            }
+        }
+    }
+}
+
 # Check if Node.js is installed
 function Test-NodeJS {
     Write-Status "Checking Node.js installation..."
     
+    # Refresh environment first
+    Update-Environment
+    
     try {
-        $nodeVersion = node --version 2>$null
-        if ($nodeVersion) {
+        $nodeVersion = & node --version 2>$null
+        if ($LASTEXITCODE -eq 0 -and $nodeVersion) {
             Write-Success "Node.js found: $nodeVersion"
             
             # Check if version is 18 or higher
@@ -63,9 +79,6 @@ function Test-NodeJS {
     }
     
     Write-Error "Node.js not found!"
-    Write-Status "Please install Node.js 18+ from: https://nodejs.org/"
-    Write-Status "Or install using Chocolatey: choco install nodejs"
-    Write-Status "Or install using Winget: winget install OpenJS.NodeJS"
     return $false
 }
 
@@ -74,8 +87,8 @@ function Test-NPM {
     Write-Status "Checking npm installation..."
     
     try {
-        $npmVersion = npm --version 2>$null
-        if ($npmVersion) {
+        $npmVersion = & npm --version 2>$null
+        if ($LASTEXITCODE -eq 0 -and $npmVersion) {
             Write-Success "npm found: $npmVersion"
             return $true
         }
@@ -88,15 +101,76 @@ function Test-NPM {
     return $false
 }
 
+# Install Node.js using winget (more reliable than Chocolatey)
+function Install-NodeJSWithWinget {
+    Write-Status "Attempting to install Node.js using winget..."
+    
+    try {
+        if (Get-Command winget -ErrorAction SilentlyContinue) {
+            Write-Status "Installing Node.js via winget..."
+            & winget install OpenJS.NodeJS --accept-source-agreements --accept-package-agreements
+            
+            if ($LASTEXITCODE -eq 0) {
+                Write-Success "Node.js installed successfully via winget"
+                Update-Environment
+                Start-Sleep -Seconds 3
+                return Test-NodeJS
+            }
+        } else {
+            Write-Warning "winget not available"
+            return $false
+        }
+    }
+    catch {
+        Write-Error "Failed to install Node.js via winget: $_"
+        return $false
+    }
+    
+    return $false
+}
+
+# Install Node.js using Chocolatey
+function Install-NodeJSWithChocolatey {
+    Write-Status "Attempting to install Node.js using Chocolatey..."
+    
+    try {
+        if (Get-Command choco -ErrorAction SilentlyContinue) {
+            Write-Status "Installing Node.js via Chocolatey..."
+            & choco install nodejs -y
+            
+            if ($LASTEXITCODE -eq 0) {
+                Write-Success "Node.js installed successfully via Chocolatey"
+                Update-Environment
+                Start-Sleep -Seconds 3
+                return Test-NodeJS
+            }
+        } else {
+            Write-Warning "Chocolatey not available"
+            return $false
+        }
+    }
+    catch {
+        Write-Error "Failed to install Node.js via Chocolatey: $_"
+        return $false
+    }
+    
+    return $false
+}
+
 # Install dependencies
 function Install-Dependencies {
     Write-Status "Installing project dependencies..."
     
     if (Test-Path "package.json") {
         try {
-            npm install
-            Write-Success "Dependencies installed successfully"
-            return $true
+            & npm install
+            if ($LASTEXITCODE -eq 0) {
+                Write-Success "Dependencies installed successfully"
+                return $true
+            } else {
+                Write-Error "Failed to install dependencies"
+                return $false
+            }
         }
         catch {
             Write-Error "Failed to install dependencies: $_"
@@ -175,27 +249,6 @@ function Test-Port {
     }
 }
 
-# Install Chocolatey (optional)
-function Install-Chocolatey {
-    Write-Status "Chocolatey package manager not found."
-    $choice = Read-Host "Would you like to install Chocolatey for easier package management? (y/N)"
-    
-    if ($choice -eq 'y' -or $choice -eq 'Y') {
-        try {
-            Set-ExecutionPolicy Bypass -Scope Process -Force
-            [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072
-            Invoke-Expression ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
-            Write-Success "Chocolatey installed successfully"
-            return $true
-        }
-        catch {
-            Write-Error "Failed to install Chocolatey: $_"
-            return $false
-        }
-    }
-    return $false
-}
-
 # Main installation process
 function Start-Installation {
     Write-Host "Starting installation process..." -ForegroundColor Cyan
@@ -213,33 +266,44 @@ function Start-Installation {
         if (-not (Test-NodeJS)) {
             Write-Host ""
             Write-Status "Node.js installation options:"
-            Write-Status "1. Download from: https://nodejs.org/"
-            Write-Status "2. Use Chocolatey: choco install nodejs"
-            Write-Status "3. Use Winget: winget install OpenJS.NodeJS"
+            Write-Status "1. Download manually from: https://nodejs.org/"
+            Write-Status "2. Use winget (recommended): winget install OpenJS.NodeJS"
+            Write-Status "3. Use Chocolatey: choco install nodejs"
             Write-Host ""
             
-            $installChoice = Read-Host "Would you like to try installing Node.js via Chocolatey? (y/N)"
+            $installChoice = Read-Host "Would you like to try automatic installation? (y/N)"
             if ($installChoice -eq 'y' -or $installChoice -eq 'Y') {
-                if (Get-Command choco -ErrorAction SilentlyContinue) {
-                    choco install nodejs -y
-                }
-                else {
-                    Install-Chocolatey
-                    if (Get-Command choco -ErrorAction SilentlyContinue) {
-                        choco install nodejs -y
-                    }
+                
+                # Try winget first (more reliable)
+                $installed = Install-NodeJSWithWinget
+                
+                # If winget fails, try Chocolatey
+                if (-not $installed) {
+                    $installed = Install-NodeJSWithChocolatey
                 }
                 
-                # Refresh environment variables
-                $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
-                
-                if (-not (Test-NodeJS)) {
-                    Write-Error "Node.js installation failed. Please install manually."
+                if (-not $installed) {
+                    Write-Host ""
+                    Write-Error "Automatic installation failed. Please install Node.js manually:"
+                    Write-Host ""
+                    Write-Host "1. Go to: https://nodejs.org/" -ForegroundColor Yellow
+                    Write-Host "2. Download the LTS version for Windows" -ForegroundColor Yellow
+                    Write-Host "3. Run the installer" -ForegroundColor Yellow
+                    Write-Host "4. Restart PowerShell and run this script again" -ForegroundColor Yellow
+                    Write-Host ""
+                    Read-Host "Press Enter to exit"
                     exit 1
                 }
             }
             else {
-                Write-Error "Node.js is required. Please install it manually and run this script again."
+                Write-Host ""
+                Write-Host "Please install Node.js manually and run this script again:" -ForegroundColor Yellow
+                Write-Host "1. Go to: https://nodejs.org/" -ForegroundColor Yellow
+                Write-Host "2. Download the LTS version for Windows" -ForegroundColor Yellow
+                Write-Host "3. Run the installer" -ForegroundColor Yellow
+                Write-Host "4. Restart PowerShell and run this script again" -ForegroundColor Yellow
+                Write-Host ""
+                Read-Host "Press Enter to exit"
                 exit 1
             }
         }
@@ -247,17 +311,21 @@ function Start-Installation {
     
     # Check npm
     if (-not (Test-NPM)) {
+        Write-Error "npm is required but not found. Please reinstall Node.js."
+        Read-Host "Press Enter to exit"
         exit 1
     }
     
     # Install dependencies
     if (-not (Install-Dependencies)) {
+        Write-Error "Failed to install dependencies. Please check your internet connection and try again."
+        Read-Host "Press Enter to exit"
         exit 1
     }
     
     # Create environment file
     if (-not (New-EnvironmentFile)) {
-        exit 1
+        Write-Warning "Failed to create environment file, but continuing..."
     }
     
     # Check port
@@ -273,16 +341,21 @@ function Start-Installation {
     Write-Host "   - WhoisXML: https://whois.whoisxmlapi.com/"
     Write-Host "   - AbuseIPDB (optional): https://www.abuseipdb.com/api"
     Write-Host ""
-    Write-Host "2. Start the development server:"
+    Write-Host "2. Run the setup wizard (optional):"
+    Write-Host "   npm run setup"
+    Write-Host ""
+    Write-Host "3. Start the development server:"
     Write-Host "   npm run dev"
     Write-Host ""
-    Write-Host "3. Open your browser and go to:"
+    Write-Host "4. Open your browser and go to:"
     Write-Host "   http://localhost:3000"
     Write-Host ""
-    Write-Host "4. Create your organization admin account on first login"
+    Write-Host "5. Create your organization admin account on first login"
     Write-Host ""
     Write-Host "📖 For more information, see README.md"
     Write-Host ""
+    
+    Read-Host "Press Enter to exit"
 }
 
 # Run main installation
