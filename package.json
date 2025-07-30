@@ -6,7 +6,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "setup": "node scripts/setup.js",
+    "check-env": "node scripts/check-env.js",
+    "test-apis": "node scripts/test-apis.js"
   },
   "dependencies": {
     "@types/crypto-js": "^4.2.2",

@@ -2,7 +2,44 @@
 
 Winston is a comprehensive Security Operations Center (SOC) platform for threat intelligence analysis, case management, and security monitoring.
 
-## 🚀 **Getting Started**
+## 🚀 **Quick Start**
+
+### **Automated Installation (Recommended)**
+
+#### **Windows (PowerShell)**
+```powershell
+# Run PowerShell as Administrator
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+.\install.ps1
+```
+
+#### **macOS/Linux (Bash)**
+```bash
+chmod +x install.sh
+./install.sh
+```
+
+#### **After Installation**
+```bash
+# Set up API keys (interactive)
+npm run setup
+
+# Test API connections
+npm run test-apis
+
+# Start the application
+npm run dev
+```
+
+Then open: **http://localhost:3000**
+
+---
+
+## 📋 **Manual Installation**
+
+If the automated scripts don't work, see [INSTALL.md](INSTALL.md) for detailed manual installation instructions.
+
+## 🔑 **API Keys Setup**
 
 ### **Step 1: Get Your API Keys**
 
