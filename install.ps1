@@ -157,19 +157,40 @@ function Install-NodeJSWithChocolatey {
     return $false
 }
 
-# Install dependencies
+# Install dependencies with better error handling
 function Install-Dependencies {
     Write-Status "Installing project dependencies..."
     
     if (Test-Path "package.json") {
         try {
-            & npm install
+            # Clear npm cache first
+            Write-Status "Clearing npm cache..."
+            & npm cache clean --force 2>$null
+            
+            # Try npm install with verbose output
+            Write-Status "Running npm install..."
+            $output = & npm install --verbose 2>&1
+            
             if ($LASTEXITCODE -eq 0) {
                 Write-Success "Dependencies installed successfully"
                 return $true
             } else {
-                Write-Error "Failed to install dependencies"
-                return $false
+                Write-Error "npm install failed with exit code: $LASTEXITCODE"
+                Write-Status "npm output:"
+                Write-Host $output -ForegroundColor Yellow
+                
+                # Try alternative approaches
+                Write-Status "Trying npm install with --legacy-peer-deps..."
+                & npm install --legacy-peer-deps
+                
+                if ($LASTEXITCODE -eq 0) {
+                    Write-Success "Dependencies installed with legacy peer deps"
+                    return $true
+                } else {
+                    Write-Error "All npm install attempts failed"
+                    Write-Status "You can try manually running: npm install"
+                    return $false
+                }
             }
         }
         catch {
@@ -215,7 +236,7 @@ NODE_ENV=development
         try {
             $envContent | Out-File -FilePath ".env.local" -Encoding UTF8
             Write-Success "Environment file created: .env.local"
-            Write-Warning "⚠️  IMPORTANT: You need to add your API keys to .env.local"
+            Write-Warning "IMPORTANT: You need to add your API keys to .env.local"
         }
         catch {
             Write-Error "Failed to create .env.local file: $_"
@@ -317,10 +338,10 @@ function Start-Installation {
     }
     
     # Install dependencies
-    if (-not (Install-Dependencies)) {
-        Write-Error "Failed to install dependencies. Please check your internet connection and try again."
-        Read-Host "Press Enter to exit"
-        exit 1
+    $depsInstalled = Install-Dependencies
+    if (-not $depsInstalled) {
+        Write-Warning "Dependencies installation had issues, but continuing..."
+        Write-Status "You can try running 'npm install' manually later"
     }
     
     # Create environment file
@@ -332,27 +353,35 @@ function Start-Installation {
     Test-Port
     
     Write-Host ""
-    Write-Host "🎉 Installation completed successfully!" -ForegroundColor Green
+    Write-Host "Installation completed!" -ForegroundColor Green
     Write-Host ""
-    Write-Host "📋 Next Steps:" -ForegroundColor Cyan
+    Write-Host "Next Steps:" -ForegroundColor Cyan
     Write-Host "1. Edit .env.local and add your API keys:"
     Write-Host "   - VirusTotal: https://www.virustotal.com/gui/my-apikey"
     Write-Host "   - IPGeolocation: https://ipgeolocation.io/"
     Write-Host "   - WhoisXML: https://whois.whoisxmlapi.com/"
     Write-Host "   - AbuseIPDB: https://www.abuseipdb.com/api"
     Write-Host ""
-    Write-Host "2. Run the setup wizard:"
-    Write-Host "   npm run setup"
+    
+    if ($depsInstalled) {
+        Write-Host "2. Start the development server:"
+        Write-Host "   npm run dev"
+        Write-Host ""
+        Write-Host "3. Open your browser and go to:"
+        Write-Host "   http://localhost:3000"
+    } else {
+        Write-Host "2. Install dependencies manually:"
+        Write-Host "   npm install"
+        Write-Host ""
+        Write-Host "3. Start the development server:"
+        Write-Host "   npm run dev"
+        Write-Host ""
+        Write-Host "4. Open your browser and go to:"
+        Write-Host "   http://localhost:3000"
+    }
+    
     Write-Host ""
-    Write-Host "3. Start the development server:"
-    Write-Host "   npm run dev"
-    Write-Host ""
-    Write-Host "4. Open your browser and go to:"
-    Write-Host "   http://localhost:3000"
-    Write-Host ""
-    Write-Host "5. Create your organization admin account on first login"
-    Write-Host ""
-    Write-Host "📖 For more information, see README.md"
+    Write-Host "For more information, see README.md"
     Write-Host ""
     
     Read-Host "Press Enter to exit"

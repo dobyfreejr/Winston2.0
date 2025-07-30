@@ -91,7 +91,7 @@ NODE_ENV=development
     $envContent | Out-File -FilePath ".env.local" -Encoding UTF8
     Write-Success "Environment file created: .env.local"
     Write-Host ""
-    Write-Host "⚠️  IMPORTANT: Edit .env.local and add your API keys!" -ForegroundColor Yellow
+    Write-Host "IMPORTANT: Edit .env.local and add your API keys!" -ForegroundColor Yellow
     Write-Host "   - VirusTotal: https://www.virustotal.com/gui/my-apikey" -ForegroundColor Yellow
     Write-Host "   - IPGeolocation: https://ipgeolocation.io/" -ForegroundColor Yellow
     Write-Host "   - WhoisXML: https://whois.whoisxmlapi.com/" -ForegroundColor Yellow
@@ -102,7 +102,7 @@ NODE_ENV=development
 
 # Start the development server
 Write-Host ""
-Write-Host "🚀 Starting Winston SOC Platform..." -ForegroundColor Green
+Write-Host "Starting Winston SOC Platform..." -ForegroundColor Green
 Write-Host ""
 Write-Host "The server will start on: http://localhost:3000" -ForegroundColor Cyan
 Write-Host "Press Ctrl+C to stop the server" -ForegroundColor Yellow
