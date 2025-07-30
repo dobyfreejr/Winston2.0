@@ -2,21 +2,26 @@
 
 Winston is a comprehensive Security Operations Center (SOC) platform for threat intelligence analysis, case management, and security monitoring.
 
-## 🚀 **Super Quick Start**
+## 🚀 **Super Quick Start (3 Steps)**
 
-### **1. Install Node.js**
-- Download from: https://nodejs.org/ (get the LTS version)
-- Run the installer and restart your terminal
+### **Step 1: Install Node.js**
+1. Go to: https://nodejs.org/
+2. Download the **LTS version** (recommended)
+3. Run the installer
+4. **Restart PowerShell/Terminal**
 
-### **2. Run Installation Script**
+### **Step 2: Run Installation**
 
 #### **Windows (Choose One)**
 ```powershell
 # Simple installer (recommended if you have issues)
 .\install-simple.ps1
 
-# Full installer with auto-install features
+# OR: Full installer with auto-install features
 .\install.ps1
+
+# OR: Just start the server directly
+.\start.ps1
 ```
 
 #### **macOS/Linux**
@@ -25,17 +30,32 @@ chmod +x install.sh
 ./install.sh
 ```
 
-### **3. Add API Keys**
-Edit `.env.local` with your API keys from:
-- **VirusTotal**: https://www.virustotal.com/gui/my-apikey
-- **IPGeolocation**: https://ipgeolocation.io/
-- **WhoisXML**: https://whois.whoisxmlapi.com/
-
-### **4. Start & Use**
+### **Step 3: Start the Server**
 ```bash
 npm run dev
+
+# OR on Windows:
+.\start.ps1
 ```
-Open: http://localhost:3000
+
+Then open: **http://localhost:3000**
+
+---
+
+## 🎯 **If You Just Want to Run It Now**
+
+```powershell
+# Windows - One command to start everything
+.\start.ps1
+```
+
+This will:
+1. Check if Node.js is installed
+2. Install dependencies if needed
+3. Create environment file
+4. Start the server on http://localhost:3000
+
+**The platform works immediately with mock data - no API keys required for testing!**
 
 ---
 
