@@ -92,7 +92,7 @@ async function processNetworkConnection(record: any, agentId: string) {
       type: 'ip',
       timestamp: new Date(record.timestamp),
       results: { agent_data: record },
-      threatLevel: connection.threatLevel,
+      threatLevel: connection.threatLevel as 'high' | 'medium' | 'low',
       status: 'analyzed'
     })
 

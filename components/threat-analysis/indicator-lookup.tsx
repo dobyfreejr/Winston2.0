@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useRouter } from 'next/navigation'
 import { Search, Loader2, AlertTriangle, Shield, Globe, Hash, Link, Plus } from 'lucide-react'
@@ -35,12 +35,10 @@ export function IndicatorLookup() {
   }>({})
 
   // Auto-populate indicator from URL params
-  useState(() => {
+  useEffect(() => {
     const urlIndicator = searchParams.get('indicator')
     if (urlIndicator) {
       setIndicator(urlIndicator)
-      // Auto-analyze if indicator is provided
-      setTimeout(() => handleAnalyze(), 100)
     }
   }, [searchParams])
 
@@ -222,7 +220,8 @@ export function IndicatorLookup() {
       status: 'open',
       indicators: [indicator],
       linkedCases: [],
-      tags: [detectIndicatorType(indicator), ...results.threatIntel.threat_types]
+      tags: [detectIndicatorType(indicator), ...results.threatIntel.threat_types],
+      notes: []
     })
     
     // Redirect to the new case

@@ -102,7 +102,8 @@ export default function CasesPage() {
       indicators,
       assignee: newCase.assignee || undefined,
       tags,
-      linkedCases: []
+      linkedCases: [],
+      notes: []
     })
 
     logger.info('case', `Case created: ${newCase.title}`, { caseId: createdCase.id })
@@ -641,7 +642,7 @@ export default function CasesPage() {
           <DialogHeader>
             <DialogTitle>Link Cases</DialogTitle>
             <DialogDescription>
-              Link "{selectedCaseForLinking?.title}" to another case
+              Link &quot;{selectedCaseForLinking?.title}&quot; to another case
             </DialogDescription>
           </DialogHeader>
           

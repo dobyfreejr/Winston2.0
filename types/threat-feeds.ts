@@ -3,7 +3,7 @@ export interface CustomThreatFeed {
   name: string
   description: string
   url: string
-  type: 'json' | 'csv' | 'xml' | 'txt'
+  type: 'json' | 'csv' | 'xml' | 'txt' | 'rss'
   format: 'ioc_list' | 'stix' | 'misp' | 'custom'
   authentication?: {
     type: 'none' | 'api_key' | 'basic' | 'bearer'

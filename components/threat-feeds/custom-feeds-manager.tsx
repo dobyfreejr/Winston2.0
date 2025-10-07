@@ -30,16 +30,34 @@ export function CustomFeedsManager() {
   const [feeds, setFeeds] = useState<CustomThreatFeed[]>([])
   const [loading, setLoading] = useState(false)
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
-  const [newFeed, setNewFeed] = useState({
+  const [newFeed, setNewFeed] = useState<{
+    name: string
+    description: string
+    url: string
+    type: 'json' | 'csv' | 'xml' | 'txt' | 'rss'
+    format: 'ioc_list' | 'stix' | 'misp' | 'custom'
+    refresh_interval: number
+    enabled: boolean
+    authentication: {
+      type: 'none' | 'api_key' | 'basic' | 'bearer'
+      credentials?: Record<string, string>
+    }
+    fields: {
+      indicator_field: string
+      type_field?: string
+      confidence_field?: string
+      tags_field?: string
+    }
+  }>({
     name: '',
     description: '',
     url: '',
-    type: 'json' as const,
-    format: 'ioc_list' as const,
+    type: 'json',
+    format: 'ioc_list',
     refresh_interval: 60,
     enabled: true,
     authentication: {
-      type: 'none' as const,
+      type: 'none',
       credentials: {}
     },
     fields: {
@@ -237,6 +255,7 @@ export function CustomFeedsManager() {
                         <SelectItem value="json">JSON</SelectItem>
                         <SelectItem value="csv">CSV</SelectItem>
                         <SelectItem value="txt">Text (Line-separated)</SelectItem>
+                        <SelectItem value="rss">RSS/Atom Feed</SelectItem>
                         <SelectItem value="xml">XML</SelectItem>
                       </SelectContent>
                     </Select>
@@ -353,57 +372,73 @@ export function CustomFeedsManager() {
               </TabsContent>
               
               <TabsContent value="fields" className="space-y-4">
-                <div>
-                  <Label htmlFor="indicator-field">Indicator Field</Label>
-                  <Input
-                    id="indicator-field"
-                    value={newFeed.fields.indicator_field}
-                    onChange={(e) => setNewFeed({
-                      ...newFeed,
-                      fields: { ...newFeed.fields, indicator_field: e.target.value }
-                    })}
-                    placeholder="indicator"
-                  />
-                </div>
-                
-                <div>
-                  <Label htmlFor="type-field">Type Field (optional)</Label>
-                  <Input
-                    id="type-field"
-                    value={newFeed.fields.type_field || ''}
-                    onChange={(e) => setNewFeed({
-                      ...newFeed,
-                      fields: { ...newFeed.fields, type_field: e.target.value }
-                    })}
-                    placeholder="type"
-                  />
-                </div>
-                
-                <div>
-                  <Label htmlFor="confidence-field">Confidence Field (optional)</Label>
-                  <Input
-                    id="confidence-field"
-                    value={newFeed.fields.confidence_field || ''}
-                    onChange={(e) => setNewFeed({
-                      ...newFeed,
-                      fields: { ...newFeed.fields, confidence_field: e.target.value }
-                    })}
-                    placeholder="confidence"
-                  />
-                </div>
-                
-                <div>
-                  <Label htmlFor="tags-field">Tags Field (optional)</Label>
-                  <Input
-                    id="tags-field"
-                    value={newFeed.fields.tags_field || ''}
-                    onChange={(e) => setNewFeed({
-                      ...newFeed,
-                      fields: { ...newFeed.fields, tags_field: e.target.value }
-                    })}
-                    placeholder="tags"
-                  />
-                </div>
+                {newFeed.type === 'rss' ? (
+                  <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <p className="text-sm text-blue-800">
+                      <strong>RSS Feed Auto-Extraction</strong>
+                    </p>
+                    <p className="text-sm text-blue-700 mt-2">
+                      RSS feeds automatically extract indicators from feed content. The system will scan for IP addresses, domains, URLs, hashes, and email addresses in the RSS items.
+                    </p>
+                    <p className="text-sm text-blue-700 mt-2">
+                      No field mapping is required.
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    <div>
+                      <Label htmlFor="indicator-field">Indicator Field</Label>
+                      <Input
+                        id="indicator-field"
+                        value={newFeed.fields.indicator_field}
+                        onChange={(e) => setNewFeed({
+                          ...newFeed,
+                          fields: { ...newFeed.fields, indicator_field: e.target.value }
+                        })}
+                        placeholder="indicator"
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="type-field">Type Field (optional)</Label>
+                      <Input
+                        id="type-field"
+                        value={newFeed.fields.type_field || ''}
+                        onChange={(e) => setNewFeed({
+                          ...newFeed,
+                          fields: { ...newFeed.fields, type_field: e.target.value }
+                        })}
+                        placeholder="type"
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="confidence-field">Confidence Field (optional)</Label>
+                      <Input
+                        id="confidence-field"
+                        value={newFeed.fields.confidence_field || ''}
+                        onChange={(e) => setNewFeed({
+                          ...newFeed,
+                          fields: { ...newFeed.fields, confidence_field: e.target.value }
+                        })}
+                        placeholder="confidence"
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="tags-field">Tags Field (optional)</Label>
+                      <Input
+                        id="tags-field"
+                        value={newFeed.fields.tags_field || ''}
+                        onChange={(e) => setNewFeed({
+                          ...newFeed,
+                          fields: { ...newFeed.fields, tags_field: e.target.value }
+                        })}
+                        placeholder="tags"
+                      />
+                    </div>
+                  </>
+                )}
               </TabsContent>
             </Tabs>
             

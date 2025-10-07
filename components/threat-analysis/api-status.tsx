@@ -160,7 +160,7 @@ export function APIStatus() {
             <li>Get your API keys from each service</li>
             <li>Add them to your <code>.env.local</code> file (without NEXT_PUBLIC_ prefix)</li>
             <li>Restart the development server</li>
-            <li>Click "Refresh" to verify the configuration</li>
+            <li>Click &quot;Refresh&quot; to verify the configuration</li>
           </ol>
         </div>
       </CardContent>

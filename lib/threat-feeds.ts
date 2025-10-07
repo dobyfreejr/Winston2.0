@@ -1,5 +1,6 @@
 import { CustomThreatFeed, ThreatIndicator, FeedIngestionResult } from '@/types/threat-feeds'
 import { logger } from './logger'
+import { parseRSS, extractIndicatorsFromRSS } from './rss-parser'
 
 // In-memory storage (replace with database in production)
 let customFeeds: CustomThreatFeed[] = []
@@ -242,7 +243,7 @@ async function parseFeedData(rawData: string, feed: CustomThreatFeed): Promise<a
 
     case 'txt':
       const txtLines = rawData.split('\n').filter(line => line.trim() && !line.startsWith('#'))
-      
+
       for (const line of txtLines) {
         const indicator = line.trim()
         if (isValidIndicator(indicator)) {
@@ -253,6 +254,30 @@ async function parseFeedData(rawData: string, feed: CustomThreatFeed): Promise<a
             tags: []
           })
         }
+      }
+      break
+
+    case 'rss':
+      try {
+        const rssFeed = await parseRSS(rawData)
+        const extractedIndicators = extractIndicatorsFromRSS(rssFeed)
+
+        for (const extracted of extractedIndicators) {
+          indicators.push({
+            indicator: extracted.indicator,
+            type: extracted.type,
+            confidence: 60,
+            tags: extracted.tags,
+            timestamp: extracted.timestamp,
+            metadata: {
+              context: extracted.context,
+              source: 'rss'
+            }
+          })
+        }
+      } catch (error) {
+        logger.error('system', 'Failed to parse RSS feed', error)
+        throw new Error(`RSS parsing failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
       }
       break
 

@@ -75,7 +75,8 @@ export function RecentActivity() {
       status: 'open',
       indicators: [activity.indicator],
       linkedCases: [],
-      tags: [activity.indicatorType, activity.severity]
+      tags: [activity.indicatorType, activity.severity],
+      notes: []
     })
     
     // Update threat detection with case ID

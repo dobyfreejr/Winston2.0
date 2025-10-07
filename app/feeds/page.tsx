@@ -363,12 +363,12 @@ export default function FeedsPage() {
                         </Button>
                         
                         {feed.url && (
-                          <Button variant="outline" size="sm" asChild>
-                            <a href={feed.url} target="_blank" rel="noopener noreferrer">
+                          <a href={feed.url} target="_blank" rel="noopener noreferrer">
+                            <Button variant="outline" size="sm">
                               <ExternalLink className="h-4 w-4 mr-2" />
                               Visit
-                            </a>
-                          </Button>
+                            </Button>
+                          </a>
                         )}
                       </div>
                     </div>

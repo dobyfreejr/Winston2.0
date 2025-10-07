@@ -173,7 +173,7 @@ export function UserManagement() {
                 
                 <div>
                   <Label htmlFor="role">Role</Label>
-                  <Select value={newUser.role} onValueChange={(value: User['role']) => setNewUser({...newUser, role: value})}>
+                  <Select value={newUser.role} onValueChange={(value: string) => setNewUser({...newUser, role: value as User['role']})}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>

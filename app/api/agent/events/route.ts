@@ -6,7 +6,7 @@ export async function POST(request: NextRequest) {
     const event = await request.json()
 
     // Log agent events
-    logger.info('agent', `Agent event: ${event.type}`, {
+    logger.info('system', `Agent event: ${event.type}`, {
       agent_id: event.agent_id,
       hostname: event.hostname,
       timestamp: event.timestamp,
@@ -16,21 +16,21 @@ export async function POST(request: NextRequest) {
     // Handle different event types
     switch (event.type) {
       case 'agent_startup':
-        logger.info('agent', `Agent ${event.agent_id} started on ${event.hostname}`, {
+        logger.info('system', `Agent ${event.agent_id} started on ${event.hostname}`, {
           collectors: event.collectors
         })
         break
       
       case 'agent_shutdown':
-        logger.info('agent', `Agent ${event.agent_id} shutting down`)
+        logger.info('system', `Agent ${event.agent_id} shutting down`)
         break
       
       case 'collector_error':
-        logger.error('agent', `Collector error on agent ${event.agent_id}`, event.error)
+        logger.error('system', `Collector error on agent ${event.agent_id}`, event.error)
         break
       
       default:
-        logger.debug('agent', `Unknown event type: ${event.type}`)
+        logger.debug('system', `Unknown event type: ${event.type}`)
     }
 
     return NextResponse.json({ 

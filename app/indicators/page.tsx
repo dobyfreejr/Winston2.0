@@ -113,7 +113,8 @@ export default function IndicatorsPage() {
       status: 'open',
       indicators: [indicator.indicator],
       linkedCases: [],
-      tags: [indicator.type, indicator.threatLevel]
+      tags: [indicator.type, indicator.threatLevel],
+      notes: []
     })
     
     // Redirect to the new case
